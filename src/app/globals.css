@@ -1,17 +1,83 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Palette — "soft & sunny". Warm, never pure black. */
+  --cream: #fdf6ec;
+  --cream-deep: #f7ebd8;
+  --surface: #fffaf3;
+  --coral: #ff7a59;
+  --coral-soft: #ffae97;
+  --coral-tint: #ffe6dd;
+  --sunny: #ffc94d;
+  --sunny-soft: #ffe1a3;
+  --ink: #3a2e2a;
+  --ink-soft: #6b5b52;
+  --ink-faint: #a6968c;
+  --border: #ece0d0;
+  --border-strong: #e0cfb8;
+  --white: #ffffff;
+  --success: #4caa72;
+
+  /* Semantic tokens */
+  --background: var(--cream);
+  --foreground: var(--ink);
+  --muted: var(--ink-soft);
+  --accent: var(--coral);
+  --accent-contrast: #ffffff;
+  --pop: var(--sunny);
+  --ring: var(--coral);
+
+  /* Typography */
+  --font-sans: var(--font-nunito), ui-rounded, "Segoe UI", system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+
+  --text-sm: clamp(0.875rem, 0.84rem + 0.18vw, 0.95rem);
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.0625rem);
+  --text-lg: clamp(1.125rem, 1.05rem + 0.4vw, 1.3rem);
+  --text-xl: clamp(1.35rem, 1.2rem + 0.7vw, 1.7rem);
+  --text-2xl: clamp(1.8rem, 1.5rem + 1.4vw, 2.6rem);
+  --text-hero: clamp(2.6rem, 1.9rem + 3.4vw, 4.6rem);
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /* Radius — generous, rounded */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 999px;
+
+  /* Soft shadows (warm-tinted) */
+  --shadow-sm: 0 2px 8px rgba(58, 46, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(58, 46, 42, 0.08);
+  --shadow-lg: 0 18px 48px rgba(58, 46, 42, 0.12);
+  --shadow-coral: 0 10px 28px rgba(255, 122, 89, 0.32);
+
+  /* Motion */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+
+  --maxw: 1120px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 html {
   height: 100%;
+  scroll-behavior: smooth;
 }
 
 html,
@@ -22,19 +88,23 @@ body {
 
 body {
   min-height: 100%;
-  display: flex;
-  flex-direction: column;
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 
 a {
@@ -42,8 +112,42 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+::selection {
+  background: var(--sunny-soft);
+  color: var(--ink);
+}
+
+@media (min-width: 880px) {
+  .hero-grid {
+    grid-template-columns: 1.05fr 0.95fr !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
   html {
-    color-scheme: dark;
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
