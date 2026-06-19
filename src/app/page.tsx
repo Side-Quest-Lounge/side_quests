@@ -282,7 +282,7 @@ export default function Home() {
           </h2>
           <p
             style={{
-              color: "rgba(255,255,255,0.92)",
+              color: "var(--on-coral)",
               fontSize: "var(--text-lg)",
               maxWidth: "40ch",
               margin: "0 auto var(--space-6)",

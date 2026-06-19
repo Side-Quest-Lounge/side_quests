@@ -43,7 +43,7 @@ const buttonVariants: Record<ButtonVariant, React.CSSProperties> = {
   accent: {
     background: "var(--sunny)",
     color: "var(--ink)",
-    boxShadow: "0 10px 24px rgba(255, 201, 77, 0.4)",
+    boxShadow: "var(--shadow-sunny)",
   },
   ghost: {
     background: "transparent",
@@ -116,9 +116,9 @@ type PillProps = {
 
 const pillTones: Record<PillTone, React.CSSProperties> = {
   neutral: { background: "var(--cream-deep)", color: "var(--ink-soft)" },
-  coral: { background: "var(--coral-tint)", color: "#b8442a" },
-  sunny: { background: "var(--sunny-soft)", color: "#8a5a00" },
-  success: { background: "#d8f0e2", color: "#2f7a4f" },
+  coral: { background: "var(--coral-tint)", color: "var(--pill-coral-fg)" },
+  sunny: { background: "var(--sunny-soft)", color: "var(--pill-sunny-fg)" },
+  success: { background: "var(--success-bg)", color: "var(--success-fg)" },
 };
 
 export function Pill({ tone = "neutral", style, children, ...props }: PillProps) {
@@ -145,7 +145,13 @@ export function Pill({ tone = "neutral", style, children, ...props }: PillProps)
 
 /* ---------------------------------- Avatar --------------------------------- */
 
-const avatarBgs = ["#ffd9cc", "#ffe6a8", "#d7eed8", "#dbe6ff", "#f3dcff"];
+const avatarBgs = [
+  "var(--avatar-bg-0)",
+  "var(--avatar-bg-1)",
+  "var(--avatar-bg-2)",
+  "var(--avatar-bg-3)",
+  "var(--avatar-bg-4)",
+];
 
 function initialsFrom(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -183,7 +189,7 @@ export function Avatar({ name, size = 44, style, ...props }: AvatarProps) {
         fontWeight: 800,
         fontSize: size * 0.38,
         flexShrink: 0,
-        boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.6)",
+        boxShadow: "inset 0 0 0 2px var(--avatar-ring)",
         ...style,
       }}
       {...props}

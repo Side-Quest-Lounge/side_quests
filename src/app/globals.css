@@ -59,6 +59,26 @@
   --shadow-md: 0 8px 24px rgba(58, 46, 42, 0.08);
   --shadow-lg: 0 18px 48px rgba(58, 46, 42, 0.12);
   --shadow-coral: 0 10px 28px rgba(255, 122, 89, 0.32);
+  --shadow-sunny: 0 10px 24px rgba(255, 201, 77, 0.4);
+
+  /* Pill tone colors */
+  --pill-coral-fg: #b8442a;
+  --pill-sunny-fg: #8a5a00;
+  --success-bg: #d8f0e2;
+  --success-fg: #2f7a4f;
+
+  /* Avatar pastel backgrounds */
+  --avatar-bg-0: #ffd9cc;
+  --avatar-bg-1: #ffe6a8;
+  --avatar-bg-2: #d7eed8;
+  --avatar-bg-3: #dbe6ff;
+  --avatar-bg-4: #f3dcff;
+
+  /* On-coral text (for overlays on coral/warm gradient) */
+  --on-coral: rgba(255, 255, 255, 0.92);
+
+  /* Avatar ring */
+  --avatar-ring: rgba(255, 255, 255, 0.6);
 
   /* Motion */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
