@@ -28,6 +28,8 @@ export function buildGroups(
  * e.g. [0.1, 0.2] → '[0.1,0.2]'::vector
  */
 export function toVec(v: number[]): string {
+  if (!v.every((x) => typeof x === "number" && isFinite(x)))
+    throw new Error("toVec: non-finite value in embedding");
   return `'[${v.join(",")}]'::vector`;
 }
 
@@ -46,7 +48,9 @@ export async function runMatchingRound(userId: string): Promise<string> {
   );
   const selfRow = (selfRows as unknown as Array<{ embedding: number[] }>)[0];
   if (!selfRow?.embedding) {
-    throw new Error(`No embedding found for user ${userId}`);
+    const err = new Error(`No embedding found for user ${userId}`);
+    (err as Error & { code: string }).code = "no_embedding";
+    throw err;
   }
   const embedding = selfRow.embedding;
 
@@ -56,7 +60,9 @@ export async function runMatchingRound(userId: string): Promise<string> {
   );
   const eventRow = (eventRows as unknown as Array<{ id: string }>)[0];
   if (!eventRow?.id) {
-    throw new Error("No open event found");
+    const err = new Error("No open event found");
+    (err as Error & { code: string }).code = "no_open_event";
+    throw err;
   }
   const eventId = eventRow.id;
 
