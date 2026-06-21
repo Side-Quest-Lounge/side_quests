@@ -1,40 +1,57 @@
 :root {
-  /* Palette — "soft & sunny". Warm, never pure black. */
-  --cream: #fdf6ec;
-  --cream-deep: #f7ebd8;
-  --surface: #fffaf3;
-  --coral: #ff7a59;
-  --coral-soft: #ffae97;
-  --coral-tint: #ffe6dd;
-  --sunny: #ffc94d;
-  --sunny-soft: #ffe1a3;
-  --ink: #3a2e2a;
-  --ink-soft: #6b5b52;
-  --ink-faint: #a6968c;
-  --border: #ece0d0;
-  --border-strong: #e0cfb8;
-  --white: #ffffff;
-  --success: #4caa72;
+  /* Palette — "Quest Log / daybreak". Bright harbour morning, lantern + aqua. */
+  --day: #f6f8f5; /* bright airy base */
+  --day-2: #eef3ef;
+  --surface-raw: #ffffff; /* card */
+  --surface-2-raw: #f1f4f1; /* raised inside card / inputs */
+  --lantern: #ffb24a; /* vivid amber fill */
+  --lantern-deep: #f0922f;
+  --lantern-ink: #b5630a; /* deep amber for amber TEXT on light */
+  --aqua: #36cdb6; /* harbour signal fill */
+  --aqua-deep: #149e8a;
+  --aqua-ink: #0a7d6d; /* deep aqua for aqua TEXT on light */
+  --ember: #f0563f; /* used very sparingly */
+  --parchment: #fbf4e6; /* light text, only on dark surfaces (CTA dark button) */
 
-  /* Semantic tokens */
-  --background: var(--cream);
+  /* Semantic tokens (names kept stable across the app, remapped to daybreak) */
+  --cream: var(--day); /* page bg base */
+  --cream-deep: #eaeeea; /* raised neutral surface */
+  --surface: var(--surface-raw);
+  --coral: var(--lantern);
+  --coral-soft: #ffc879;
+  --coral-tint: rgba(255, 178, 74, 0.18);
+  --sunny: var(--aqua);
+  --sunny-soft: rgba(54, 205, 182, 0.16);
+  --ink: #211b3a; /* deep plum-ink (keeps a tie to the old dusk) */
+  --ink-soft: #5f5878;
+  --ink-faint: #938bad;
+  --border: rgba(33, 27, 58, 0.1);
+  --border-strong: rgba(33, 27, 58, 0.18);
+  --white: #ffffff;
+  --success: var(--aqua);
+
+  --background: var(--day);
   --foreground: var(--ink);
   --muted: var(--ink-soft);
-  --accent: var(--coral);
-  --accent-contrast: #ffffff;
-  --pop: var(--sunny);
-  --ring: var(--coral);
+  --accent: var(--lantern);
+  --accent-contrast: #2a1c05; /* dark ink on amber buttons */
+  --pop: var(--aqua);
+  --ring: var(--lantern-deep);
 
   /* Typography */
-  --font-sans: var(--font-nunito), ui-rounded, "Segoe UI", system-ui, sans-serif;
-  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-jakarta), ui-rounded, "Segoe UI", system-ui, sans-serif;
+  --font-display: var(--font-bricolage), Georgia, serif;
+  --font-mono: var(--font-mono-face), ui-monospace, "SF Mono", monospace;
 
   --text-sm: clamp(0.875rem, 0.84rem + 0.18vw, 0.95rem);
   --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.0625rem);
   --text-lg: clamp(1.125rem, 1.05rem + 0.4vw, 1.3rem);
   --text-xl: clamp(1.35rem, 1.2rem + 0.7vw, 1.7rem);
   --text-2xl: clamp(1.8rem, 1.5rem + 1.4vw, 2.6rem);
-  --text-hero: clamp(2.6rem, 1.9rem + 3.4vw, 4.6rem);
+  --text-hero: clamp(2.6rem, 1.9rem + 3.4vw, 4.7rem);
+
+  /* Mono "quest meta" label — tracked + uppercase, used for stats/codes */
+  --label: 0.72rem;
 
   /* Spacing scale */
   --space-1: 0.25rem;
@@ -47,38 +64,37 @@
   --space-8: 4rem;
   --space-9: 6rem;
 
-  /* Radius — generous, rounded */
+  /* Radius */
   --radius-sm: 10px;
   --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
   --radius-pill: 999px;
 
-  /* Soft shadows (warm-tinted) */
-  --shadow-sm: 0 2px 8px rgba(58, 46, 42, 0.06);
-  --shadow-md: 0 8px 24px rgba(58, 46, 42, 0.08);
-  --shadow-lg: 0 18px 48px rgba(58, 46, 42, 0.12);
-  --shadow-coral: 0 10px 28px rgba(255, 122, 89, 0.32);
-  --shadow-sunny: 0 10px 24px rgba(255, 201, 77, 0.4);
+  /* Shadows + glows (light theme: soft real shadows, accent glow on CTAs) */
+  --shadow-sm: 0 2px 10px rgba(33, 27, 58, 0.06);
+  --shadow-md: 0 12px 30px rgba(33, 27, 58, 0.1);
+  --shadow-lg: 0 26px 60px rgba(33, 27, 58, 0.14);
+  --shadow-coral: 0 10px 26px rgba(255, 150, 50, 0.42);
+  --shadow-sunny: 0 10px 24px rgba(54, 205, 182, 0.38);
 
-  /* Pill tone colors */
-  --pill-coral-fg: #b8442a;
-  --pill-sunny-fg: #8a5a00;
-  --success-bg: #d8f0e2;
-  --success-fg: #2f7a4f;
+  /* Pill tone colors (legible on translucent tints over light surfaces) */
+  --pill-coral-fg: #b5630a;
+  --pill-sunny-fg: #0a7d6d;
+  --success-bg: rgba(54, 205, 182, 0.18);
+  --success-fg: #0a7d6d;
 
-  /* Avatar pastel backgrounds */
-  --avatar-bg-0: #ffd9cc;
-  --avatar-bg-1: #ffe6a8;
-  --avatar-bg-2: #d7eed8;
-  --avatar-bg-3: #dbe6ff;
-  --avatar-bg-4: #f3dcff;
+  /* Avatar pastel "party tokens" — colorful, dark initials, pop on white */
+  --avatar-bg-0: #ffc2ad;
+  --avatar-bg-1: #ffd980;
+  --avatar-bg-2: #a8e6c8;
+  --avatar-bg-3: #b6c8ff;
+  --avatar-bg-4: #e0b8ff;
+  --avatar-ink: #2a2342;
+  --avatar-ring: rgba(20, 15, 40, 0.08);
 
-  /* On-coral text (for overlays on coral/warm gradient) */
-  --on-coral: rgba(255, 255, 255, 0.92);
-
-  /* Avatar ring */
-  --avatar-ring: rgba(255, 255, 255, 0.6);
+  /* Text on lantern/amber surfaces */
+  --on-coral: rgba(42, 28, 5, 0.78);
 
   /* Motion */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -109,7 +125,12 @@ body {
 body {
   min-height: 100%;
   color: var(--foreground);
-  background: var(--background);
+  background-color: var(--day);
+  background-image:
+    radial-gradient(1100px 640px at 8% -12%, rgba(255, 170, 70, 0.22), transparent 56%),
+    radial-gradient(960px 620px at 104% -6%, rgba(54, 205, 182, 0.2), transparent 55%),
+    linear-gradient(180deg, var(--day) 0%, var(--day-2) 100%);
+  background-attachment: fixed;
   font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: 1.6;
@@ -121,9 +142,9 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.08;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.015em;
   color: var(--ink);
 }
 
@@ -137,6 +158,15 @@ button {
   cursor: pointer;
 }
 
+/* Mono utility label — the "quest log" voice for stats, codes, meta. */
+.meta {
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
 :focus-visible {
   outline: 3px solid var(--ring);
   outline-offset: 2px;
@@ -148,13 +178,261 @@ button {
 }
 
 ::selection {
-  background: var(--sunny-soft);
+  background: rgba(54, 205, 182, 0.28);
   color: var(--ink);
 }
 
 @media (min-width: 880px) {
   .hero-grid {
     grid-template-columns: 1.05fr 0.95fr !important;
+  }
+}
+
+/* ----------------------------- App shell ----------------------------- */
+:root {
+  --sidebar-w: 248px;
+}
+
+.app-root {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5) var(--space-4);
+  border-right: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(8px);
+}
+
+.app-brand,
+.app-topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-lg);
+  color: var(--ink);
+  padding: 0 var(--space-2);
+}
+
+.app-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.6rem var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.app-nav-item:hover {
+  background: var(--surface-2-raw);
+  color: var(--ink);
+}
+
+.app-nav-item.is-active {
+  background: var(--coral-tint);
+  color: var(--lantern-ink);
+}
+
+.app-user-chip {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.app-user-chip:hover {
+  background: var(--surface-2-raw);
+}
+
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  background: rgba(246, 248, 245, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.app-topbar-brand {
+  display: none;
+}
+
+.app-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 0.3rem 0.7rem;
+}
+
+.app-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--aqua);
+  box-shadow: 0 0 8px var(--aqua);
+}
+
+.app-bell {
+  display: inline-flex;
+  color: var(--ink-soft);
+}
+
+.app-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) var(--space-8);
+}
+
+.app-tabs {
+  display: none;
+}
+
+/* Dashboard main + right-rail grid */
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+@media (min-width: 1000px) {
+  .dash-grid {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+  }
+}
+
+/* Two-up card row that collapses on narrow screens */
+.dash-duo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.dash-link {
+  color: var(--lantern-ink);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.dash-link:hover {
+  text-decoration: underline;
+}
+
+/* Quest hero action row — avatars on the left, actions on the right; stacks on phones */
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.hero-cta {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+@media (max-width: 560px) {
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-cta {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 879px) {
+  .app-sidebar {
+    display: none;
+  }
+
+  .app-topbar-brand {
+    display: inline-flex;
+  }
+
+  .app-status {
+    display: none;
+  }
+
+  .app-content {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+    padding-bottom: calc(var(--space-8) + 64px);
+  }
+
+  .app-tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+  }
+
+  .app-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+    padding: 4px 0;
+    color: var(--ink-faint);
+    font-size: 0.66rem;
+    font-weight: 700;
+  }
+
+  .app-tab.is-active {
+    color: var(--lantern-ink);
   }
 }
 

@@ -42,7 +42,7 @@ const buttonVariants: Record<ButtonVariant, React.CSSProperties> = {
   },
   accent: {
     background: "var(--sunny)",
-    color: "var(--ink)",
+    color: "var(--accent-contrast)",
     boxShadow: "var(--shadow-sunny)",
   },
   ghost: {
@@ -182,7 +182,7 @@ export function Avatar({ name, size = 44, style, ...props }: AvatarProps) {
         height: size,
         borderRadius: "var(--radius-pill)",
         background: bg,
-        color: "var(--ink)",
+        color: "var(--avatar-ink)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -210,7 +210,7 @@ type FieldProps = {
 
 const controlStyle: React.CSSProperties = {
   width: "100%",
-  background: "var(--white)",
+  background: "var(--surface-2-raw)",
   border: "1.5px solid var(--border-strong)",
   borderRadius: "var(--radius-md)",
   padding: "var(--space-3) var(--space-4)",

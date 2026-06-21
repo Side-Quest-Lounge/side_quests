@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Button, Card, Pill, Avatar } from "@/components/ui";
+import { Button, Card, Avatar } from "@/components/ui";
 
 const container = {
   hidden: { opacity: 0 },
@@ -21,47 +21,35 @@ const rise = {
   },
 } as const;
 
-const steps = [
+const stages = [
   {
-    emoji: "👋",
-    title: "Tell us a little",
+    no: "01",
+    title: "Tell us your vibe",
     body: "A few light questions — what you're into, when you're free. No bio to agonise over.",
-    tone: "coral" as const,
-    chip: "2 minutes",
   },
   {
-    emoji: "✨",
-    title: "We match your group",
-    body: "Our concierge pairs you with 3–5 like-minded people new to the same kind of fun.",
-    tone: "sunny" as const,
-    chip: "Small groups",
+    no: "02",
+    title: "We assemble your party",
+    body: "The concierge pairs you with 3–5 like-minded people new to the same kind of fun.",
   },
   {
-    emoji: "🎉",
-    title: "Show up & enjoy",
+    no: "03",
+    title: "Accept & show up",
     body: "One easy activity each week — a walk, a bite, a game night. Come as you are.",
-    tone: "success" as const,
-    chip: "Weekly",
   },
 ];
 
-const friends = ["Maia T", "Liam O", "Priya S", "Noah W", "Aroha K"];
+const party = ["Maia T", "Liam O", "Priya S", "Noah W", "Aroha K"];
 
 export default function Home() {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <header
         style={{
           maxWidth: "var(--maxw)",
           width: "100%",
           margin: "0 auto",
-          padding: "var(--space-5) var(--space-5)",
+          padding: "var(--space-5)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -70,16 +58,19 @@ export default function Home() {
         <span
           style={{
             fontFamily: "var(--font-display)",
-            fontWeight: 700,
+            fontWeight: 800,
             fontSize: "var(--text-xl)",
             color: "var(--ink)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--space-2)",
           }}
         >
-          Side&nbsp;Quest
+          <Lantern /> Side&nbsp;Quest
         </span>
-        <Link href="/sign-up">
+        <Link href="/sign-in">
           <Button variant="ghost" style={{ minHeight: 42, fontSize: "var(--text-sm)" }}>
-            Sign in
+            Log in
           </Button>
         </Link>
       </header>
@@ -107,20 +98,20 @@ export default function Home() {
         >
           <div>
             <motion.div variants={rise}>
-              <Pill tone="sunny">🌤️ For Auckland 20–35s, especially newcomers</Pill>
+              <QuestTag>For Auckland newcomers · 20–35</QuestTag>
             </motion.div>
 
             <motion.h1
               variants={rise}
               style={{
                 fontSize: "var(--text-hero)",
-                margin: "var(--space-4) 0 var(--space-4)",
-                maxWidth: "14ch",
+                fontWeight: 800,
+                margin: "var(--space-4) 0",
+                maxWidth: "16ch",
               }}
             >
-              New to Auckland?{" "}
-              <span style={{ color: "var(--coral)" }}>Meet your people</span> this
-              week.
+              Your next side quest:{" "}
+              <span style={{ color: "var(--lantern-ink)" }}>meet your people.</span>
             </motion.h1>
 
             <motion.p
@@ -128,13 +119,13 @@ export default function Home() {
               style={{
                 fontSize: "var(--text-lg)",
                 color: "var(--ink-soft)",
-                maxWidth: "46ch",
+                maxWidth: "48ch",
                 marginBottom: "var(--space-6)",
               }}
             >
-              An AI concierge gathers a small group of friendly strangers for one
-              low-key activity every week. No swiping, no awkward intros — just
-              show up and enjoy.
+              Each week our concierge assembles a small party of friendly strangers and sets
+              you one low-key activity. No swiping, no small-talk gauntlet — just accept the
+              quest and show up.
             </motion.p>
 
             <motion.div
@@ -142,100 +133,50 @@ export default function Home() {
               style={{
                 display: "flex",
                 flexWrap: "wrap",
-                gap: "var(--space-3)",
+                gap: "var(--space-4)",
                 alignItems: "center",
               }}
             >
               <Link href="/sign-up">
                 <Button variant="primary" style={{ minHeight: 54, fontSize: "var(--text-lg)" }}>
-                  Find my group →
+                  Accept this week&apos;s quest →
                 </Button>
               </Link>
-              <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                 <span style={{ display: "flex" }}>
-                  {friends.slice(0, 4).map((name, i) => (
+                  {party.slice(0, 4).map((name, i) => (
                     <Avatar
                       key={name}
                       name={name}
                       size={36}
-                      style={{
-                        marginLeft: i === 0 ? 0 : -10,
-                        border: "2px solid var(--background)",
-                      }}
+                      style={{ marginLeft: i === 0 ? 0 : -10, border: "2px solid var(--background)" }}
                     />
                   ))}
                 </span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", fontWeight: 600 }}>
-                  120+ met their crew
+                <span className="meta" style={{ color: "var(--ink-soft)" }}>
+                  120 matched
                 </span>
               </span>
             </motion.div>
           </div>
 
           <motion.div variants={rise}>
-            <Card
-              interactive
-              style={{
-                background: "var(--surface)",
-                padding: "var(--space-5)",
-                boxShadow: "var(--shadow-lg)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "var(--space-4)",
-                }}
-              >
-                <span style={{ fontWeight: 800, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)" }}>
-                  This week&apos;s side quest
-                </span>
-                <Pill tone="coral">Saturday</Pill>
-              </div>
-              <div
-                style={{
-                  background: "var(--coral-tint)",
-                  borderRadius: "var(--radius-md)",
-                  padding: "var(--space-4)",
-                  marginBottom: "var(--space-4)",
-                }}
-              >
-                <div style={{ fontSize: "var(--text-xl)", fontWeight: 800, color: "var(--ink)" }}>
-                  ☕ Coffee & a coastal walk
-                </div>
-                <div style={{ color: "var(--ink-soft)", marginTop: "var(--space-1)" }}>
-                  Mission Bay · 10:00am · easy pace
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex" }}>
-                  {friends.map((name, i) => (
-                    <Avatar
-                      key={name}
-                      name={name}
-                      size={40}
-                      style={{ marginLeft: i === 0 ? 0 : -12, border: "2px solid var(--surface)" }}
-                    />
-                  ))}
-                </div>
-                <Pill tone="success">You&apos;re in 🎉</Pill>
-              </div>
-            </Card>
+            <QuestCard />
           </motion.div>
         </motion.section>
 
         <section style={{ marginTop: "var(--space-9)" }}>
-          <motion.h2
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.6 }}
             transition={{ duration: 0.5 }}
-            style={{ fontSize: "var(--text-2xl)", marginBottom: "var(--space-6)", maxWidth: "20ch" }}
           >
-            Making friends as an adult, made easy.
-          </motion.h2>
+            <span className="meta">The quest log</span>
+            <h2 style={{ fontSize: "var(--text-2xl)", margin: "var(--space-2) 0 var(--space-6)", maxWidth: "22ch" }}>
+              Three steps from new in town to a standing Saturday plan.
+            </h2>
+          </motion.div>
 
           <motion.div
             variants={container}
@@ -248,15 +189,23 @@ export default function Home() {
               gap: "var(--space-5)",
             }}
           >
-            {steps.map((step) => (
-              <motion.div key={step.title} variants={rise}>
+            {stages.map((stage) => (
+              <motion.div key={stage.no} variants={rise}>
                 <Card interactive style={{ height: "100%" }}>
-                  <div style={{ fontSize: "2rem", marginBottom: "var(--space-3)" }}>{step.emoji}</div>
-                  <div style={{ marginBottom: "var(--space-3)" }}>
-                    <Pill tone={step.tone}>{step.chip}</Pill>
-                  </div>
-                  <h3 style={{ fontSize: "var(--text-xl)", marginBottom: "var(--space-2)" }}>{step.title}</h3>
-                  <p style={{ color: "var(--ink-soft)" }}>{step.body}</p>
+                  <span
+                    className="meta"
+                    style={{
+                      color: "var(--lantern-ink)",
+                      fontSize: "1.5rem",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    {stage.no}
+                  </span>
+                  <h3 style={{ fontSize: "var(--text-xl)", margin: "var(--space-3) 0 var(--space-2)" }}>
+                    {stage.title}
+                  </h3>
+                  <p style={{ color: "var(--ink-soft)" }}>{stage.body}</p>
                 </Card>
               </motion.div>
             ))}
@@ -270,14 +219,19 @@ export default function Home() {
           transition={{ type: "spring", stiffness: 110, damping: 18 }}
           style={{
             marginTop: "var(--space-9)",
-            background: "linear-gradient(135deg, var(--coral) 0%, var(--sunny) 140%)",
+            position: "relative",
+            overflow: "hidden",
+            background: "linear-gradient(135deg, var(--lantern) 0%, var(--lantern-deep) 100%)",
             borderRadius: "var(--radius-xl)",
             padding: "var(--space-8) var(--space-6)",
             textAlign: "center",
-            boxShadow: "var(--shadow-lg)",
+            boxShadow: "var(--shadow-coral)",
           }}
         >
-          <h2 style={{ color: "var(--white)", fontSize: "var(--text-2xl)", marginBottom: "var(--space-3)" }}>
+          <span className="meta" style={{ color: "var(--on-coral)" }}>
+            Party forming
+          </span>
+          <h2 style={{ color: "#1a1535", fontSize: "var(--text-2xl)", margin: "var(--space-2) 0 var(--space-3)" }}>
             Your people are already out there.
           </h2>
           <p
@@ -288,12 +242,21 @@ export default function Home() {
               margin: "0 auto var(--space-6)",
             }}
           >
-            Join this week&apos;s round. It&apos;s low-stakes, friendly, and you can
-            come exactly as you are.
+            Join this week&apos;s round. It&apos;s low-stakes, friendly, and you can come exactly as
+            you are.
           </p>
           <Link href="/sign-up">
-            <Button variant="accent" style={{ minHeight: 54, fontSize: "var(--text-lg)" }}>
-              Get started — it&apos;s free
+            <Button
+              variant="primary"
+              style={{
+                minHeight: 54,
+                fontSize: "var(--text-lg)",
+                background: "#1a1535",
+                color: "var(--parchment)",
+                boxShadow: "0 12px 30px rgba(0,0,0,0.32)",
+              }}
+            >
+              Accept the quest — it&apos;s free
             </Button>
           </Link>
         </motion.section>
@@ -308,10 +271,165 @@ export default function Home() {
           color: "var(--ink-faint)",
           fontSize: "var(--text-sm)",
           borderTop: "1px solid var(--border)",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "var(--space-3)",
+          justifyContent: "space-between",
         }}
       >
-        © {new Date().getFullYear()} Side Quest · Made in Tāmaki Makaurau Auckland
+        <span>© {new Date().getFullYear()} Side Quest</span>
+        <span className="meta">Made in Tāmaki Makaurau Auckland</span>
       </footer>
     </div>
+  );
+}
+
+function Lantern() {
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 22,
+        height: 22,
+        borderRadius: "50%",
+        display: "inline-block",
+        background: "radial-gradient(circle at 35% 35%, #ffe7b0, var(--lantern) 55%, var(--lantern-deep))",
+        boxShadow: "0 0 16px rgba(255,178,74,0.7)",
+      }}
+    />
+  );
+}
+
+function QuestTag({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className="meta"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "var(--space-2)",
+        padding: "0.4rem 0.85rem",
+        border: "1px solid var(--border-strong)",
+        borderRadius: "var(--radius-pill)",
+        color: "var(--ink-soft)",
+      }}
+    >
+      <span
+        style={{
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          background: "var(--aqua)",
+          boxShadow: "0 0 8px var(--aqua)",
+        }}
+      />
+      {children}
+    </span>
+  );
+}
+
+function QuestCard() {
+  return (
+    <Card
+      interactive
+      style={{
+        position: "relative",
+        padding: "var(--space-5)",
+        boxShadow: "var(--shadow-lg), var(--shadow-coral)",
+        background: "linear-gradient(180deg, var(--surface-2-raw), var(--surface-raw))",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "var(--space-4)",
+        }}
+      >
+        <span className="meta" style={{ color: "var(--lantern-ink)" }}>
+          This week&apos;s quest
+        </span>
+        <span
+          className="meta"
+          style={{
+            color: "var(--ink)",
+            border: "1px solid var(--border-strong)",
+            borderRadius: "var(--radius-pill)",
+            padding: "0.25rem 0.6rem",
+          }}
+        >
+          ★ Sat
+        </span>
+      </div>
+
+      <div
+        style={{
+          position: "relative",
+          background: "var(--coral-tint)",
+          border: "1px solid rgba(255,178,74,0.22)",
+          borderRadius: "var(--radius-md)",
+          padding: "var(--space-4)",
+          marginBottom: "var(--space-5)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "var(--text-xl)",
+            fontWeight: 800,
+            fontFamily: "var(--font-display)",
+            color: "var(--ink)",
+          }}
+        >
+          ☕ Coffee &amp; a coastal walk
+        </div>
+        <div className="meta" style={{ marginTop: "var(--space-2)", color: "var(--ink-soft)" }}>
+          Mission Bay · 10:00 · easy pace
+        </div>
+
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            right: 14,
+            bottom: -18,
+            transform: "rotate(-9deg)",
+            width: 66,
+            height: 66,
+            borderRadius: "50%",
+            border: "2px dashed var(--aqua)",
+            color: "var(--aqua-ink)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.62rem",
+            letterSpacing: "0.1em",
+            lineHeight: 1.2,
+            background: "var(--surface-raw)",
+            boxShadow: "0 0 18px rgba(77,214,193,0.28)",
+          }}
+        >
+          YOU&apos;RE
+          <br />
+          IN
+        </span>
+      </div>
+
+      <span className="meta" style={{ display: "block", marginBottom: "var(--space-3)" }}>
+        Your party · 5
+      </span>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        {party.map((name, i) => (
+          <Avatar
+            key={name}
+            name={name}
+            size={42}
+            style={{ marginLeft: i === 0 ? 0 : -12, border: "2px solid var(--surface-raw)" }}
+          />
+        ))}
+      </div>
+    </Card>
   );
 }

@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { groups, groupMembers, events } from "@/db/schema";
+import { groups, groupMembers } from "@/db/schema";
 
 export type Candidate = { userId: string; score: number };
 export type GroupMember = { userId: string; matchScore: number };
