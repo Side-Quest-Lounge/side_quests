@@ -2,6 +2,8 @@
 
 Weekly activity-based friend matching for Auckland newcomers. An AI concierge matches you into a small group, books the activity, and hosts the chat.
 
+[Hackathon — Building Agents for Real-World Challenges](https://xprize.devpost.com/)
+
 ## Stack
 
 - **Next.js 15** (App Router) on Vercel
