@@ -9,7 +9,7 @@ export default function SignUpPage() {
 
   function enterDemo(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/home");
+    router.push("/onboarding");
   }
 
   return (

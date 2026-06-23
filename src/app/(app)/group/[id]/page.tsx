@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Avatar, Button, Card, Pill } from "@/components/ui";
-import { DEMO, demoGroup } from "@/lib/demo";
+import { DEMO, DEMO_GROUP_ID, demoGroup } from "@/lib/demo";
 
 type Member = {
   userId: string;
@@ -28,11 +28,15 @@ type GroupData = {
 export default function GroupRevealPage() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-  const [group, setGroup] = useState<GroupData | null>(DEMO ? demoGroup : null);
+  const isDemoGroup = DEMO || id === DEMO_GROUP_ID;
+  const [group, setGroup] = useState<GroupData | null>(isDemoGroup ? demoGroup : null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
-    if (DEMO) return;
+    if (isDemoGroup) {
+      setGroup(demoGroup);
+      return;
+    }
     async function load() {
       const res = await fetch("/api/me/group");
       if (!res.ok) return;
@@ -40,7 +44,7 @@ export default function GroupRevealPage() {
       if (data.group?.id === id) setGroup(data.group);
     }
     void load();
-  }, [id]);
+  }, [id, isDemoGroup]);
 
   async function confirmSeat() {
     if (DEMO) {

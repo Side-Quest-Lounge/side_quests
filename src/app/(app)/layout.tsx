@@ -1,5 +1,10 @@
 import { AppShell } from "@/components/app-shell";
+import { OpenQuestsProvider } from "@/context/open-quests";
 
 export default function AppGroupLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+  return (
+    <OpenQuestsProvider>
+      <AppShell>{children}</AppShell>
+    </OpenQuestsProvider>
+  );
 }

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Avatar } from "@/components/ui";
-import { demoUser } from "@/lib/demo";
+import { DisplayName } from "@/components/user-display";
+import { DEMO_GROUP_ID } from "@/lib/demo";
+import { chatPath } from "@/lib/paths";
 
 type NavItem = {
   href: string;
@@ -18,9 +20,8 @@ type NavItem = {
 const nav: NavItem[] = [
   { href: "/home", label: "Home", icon: IconHome, match: ["/finding", "/group", "/survey"], tab: true },
   { href: "/explore", label: "Explore", icon: IconCompass, tab: true },
-  { href: "/chat", label: "Chat", icon: IconChat, tab: true },
+  { href: chatPath(), label: "Chat", icon: IconChat, match: [`/chat/${DEMO_GROUP_ID}`], tab: true },
   { href: "/quests", label: "Quests", icon: IconMap },
-  { href: "/you", label: "You", icon: IconUser, tab: true },
 ];
 
 function isActive(item: NavItem, pathname: string): boolean {
@@ -51,22 +52,28 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <Link href="/you" className="app-user-chip">
-          <Avatar name={demoUser.name} size={34} />
-          <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-            <span style={{ fontWeight: 700, fontSize: "var(--text-sm)", whiteSpace: "nowrap" }}>{demoUser.name}</span>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                color: "var(--ink-faint)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              View profile
-            </span>
-          </span>
+        <Link href="/onboarding" className="app-user-chip">
+          <DisplayName>
+            {(name) => (
+              <>
+                <Avatar name={name} size={34} />
+                <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                  <span style={{ fontWeight: 700, fontSize: "var(--text-sm)", whiteSpace: "nowrap" }}>{name}</span>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      color: "var(--ink-faint)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Edit profile
+                  </span>
+                </span>
+              </>
+            )}
+          </DisplayName>
         </Link>
       </aside>
 
@@ -84,7 +91,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span aria-hidden className="app-bell">
             <IconBell />
           </span>
-          <Avatar name={demoUser.name} size={34} />
+          <Link href="/onboarding" aria-label="Edit profile">
+            <DisplayName>{(name) => <Avatar name={name} size={34} />}</DisplayName>
+          </Link>
         </header>
 
         <main className="app-content">{children}</main>
@@ -162,15 +171,6 @@ function IconMap() {
     <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" {...stroke} aria-hidden>
       <path d="M9 4 4 6v14l5-2 6 2 5-2V4l-5 2-6-2z" />
       <path d="M9 4v14M15 6v14" />
-    </svg>
-  );
-}
-
-function IconUser() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" {...stroke} aria-hidden>
-      <circle cx="12" cy="8.5" r="3.5" />
-      <path d="M5.5 19a6.5 6.5 0 0 1 13 0" />
     </svg>
   );
 }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Button, Card } from "@/components/ui";
-import { DEMO, demoMessages } from "@/lib/demo";
+import { DEMO, DEMO_GROUP_ID, demoMessages } from "@/lib/demo";
 
 type ChatMessage = {
   id: string;
@@ -14,7 +14,8 @@ type ChatMessage = {
 
 export default function ChatPage() {
   const { id: groupId } = useParams<{ id: string }>();
-  const [messages, setMessages] = useState<ChatMessage[]>(DEMO ? demoMessages : []);
+  const isDemoGroup = DEMO || groupId === DEMO_GROUP_ID;
+  const [messages, setMessages] = useState<ChatMessage[]>(isDemoGroup ? demoMessages : []);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const lastTs = useRef<string | null>(null);
@@ -36,19 +37,19 @@ export default function ChatPage() {
   }, [groupId]);
 
   useEffect(() => {
-    if (DEMO) return;
+    if (isDemoGroup) return;
     void fetch("/api/agent/host", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ groupId }),
     }).then(() => fetchMessages());
-  }, [groupId, fetchMessages]);
+  }, [groupId, fetchMessages, isDemoGroup]);
 
   useEffect(() => {
-    if (DEMO) return;
+    if (isDemoGroup) return;
     const interval = setInterval(() => void fetchMessages(), 3000);
     return () => clearInterval(interval);
-  }, [fetchMessages]);
+  }, [fetchMessages, isDemoGroup]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -56,7 +57,7 @@ export default function ChatPage() {
 
   async function send() {
     if (!text.trim()) return;
-    if (DEMO) {
+    if (isDemoGroup) {
       const msg: ChatMessage = {
         id: `local-${Date.now()}`,
         author: "you",

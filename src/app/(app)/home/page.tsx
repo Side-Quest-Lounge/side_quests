@@ -2,26 +2,33 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ProfileGateLink } from "@/components/profile-gate-link";
 import { Avatar, Button, Card, Pill } from "@/components/ui";
+import { DisplayName } from "@/components/user-display";
+import { useOpenQuests } from "@/context/open-quests";
 import {
   demoGroup,
   demoMessages,
-  demoOpenEvents,
   demoPastQuests,
-  demoUser,
 } from "@/lib/demo";
+import { chatPath, exploreQuestPath, groupPath } from "@/lib/paths";
 
 export default function HomePage() {
   const isActive = demoGroup.subscriptionStatus === "active";
   const recent = demoMessages.slice(-3);
+  const { quests: openQuests } = useOpenQuests();
 
   return (
     <div>
       <div style={{ marginBottom: "var(--space-6)" }}>
         <span className="meta">Your week</span>
-        <h1 style={{ fontSize: "var(--text-2xl)", marginTop: "var(--space-1)" }}>
-          Kia ora, {demoUser.name} 👋
-        </h1>
+        <DisplayName>
+          {(name) => (
+            <h1 style={{ fontSize: "var(--text-2xl)", marginTop: "var(--space-1)" }}>
+              Kia ora, {name} 👋
+            </h1>
+          )}
+        </DisplayName>
       </div>
 
       <div className="dash-grid">
@@ -30,12 +37,7 @@ export default function HomePage() {
           <QuestHero />
 
           <Card>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
-              <h2 style={{ fontSize: "var(--text-lg)" }}>Latest in your party</h2>
-              <Link href="/chat" className="dash-link">
-                Open chat →
-              </Link>
-            </div>
+            <h2 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-3)" }}>Latest in your party</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               {recent.map((m) => {
                 const isYou = m.author === "you";
@@ -55,19 +57,28 @@ export default function HomePage() {
           </Card>
 
           <Card>
-            <h2 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-3)" }}>Why you&apos;re together</h2>
-            <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-4)" }}>{demoGroup.rationale}</p>
-            <span className="meta" style={{ display: "block", marginBottom: "var(--space-2)" }}>
-              Icebreakers
-            </span>
-            <ul style={{ paddingLeft: "1.1rem", color: "var(--ink-soft)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              {demoGroup.icebreakers.map((ib) => (
-                <li key={ib}>{ib}</li>
-              ))}
-            </ul>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-4)" }}>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-2)" }}>From your concierge</h2>
+                <p
+                  style={{
+                    color: "var(--ink-soft)",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {demoGroup.rationale}
+                </p>
+              </div>
+              <ProfileGateLink href={groupPath()} className="dash-link" style={{ flexShrink: 0, marginTop: "var(--space-1)" }}>
+                Full reveal →
+              </ProfileGateLink>
+            </div>
           </Card>
 
-          <div>
+          <Card>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
               <h2 style={{ fontSize: "var(--text-lg)" }}>Open quests anyone can join</h2>
               <Link href="/explore" className="dash-link">
@@ -75,7 +86,7 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="dash-duo">
-              {demoOpenEvents.slice(0, 2).map((e) => (
+              {openQuests.slice(0, 2).map((e) => (
                 <Card key={e.id} interactive style={{ height: "100%" }}>
                   <div style={{ fontSize: "1.6rem", marginBottom: "var(--space-2)" }}>{e.emoji}</div>
                   <div style={{ fontWeight: 700, marginBottom: "var(--space-1)" }}>{e.title}</div>
@@ -84,14 +95,14 @@ export default function HomePage() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "var(--space-3)" }}>
                     <Pill tone="success">{e.spotsLeft} spots left</Pill>
-                    <Link href="/explore" className="dash-link">
-                      Join →
+                    <Link href={exploreQuestPath(e.id)} className="dash-link">
+                      More info →
                     </Link>
                   </div>
                 </Card>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Right rail */}
@@ -107,12 +118,10 @@ export default function HomePage() {
             ) : (
               <>
                 <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-3)" }}>
-                  You&apos;re on a free trial. Confirm your seat to lock in this week&apos;s quest.
+                  Seat not confirmed yet — lock in on your group reveal.
                 </p>
-                <Link href={`/group/${demoGroup.id}`}>
-                  <Button variant="primary" style={{ width: "100%" }}>
-                    Confirm seat — $25/mo
-                  </Button>
+                <Link href={groupPath()} className="dash-link">
+                  Confirm seat →
                 </Link>
               </>
             )}
@@ -184,10 +193,7 @@ function QuestHero() {
             </div>
           </div>
           <div className="hero-cta">
-            <Link href={`/group/${demoGroup.id}`} className="dash-link">
-              Details →
-            </Link>
-            <Link href="/chat">
+            <Link href={chatPath()}>
               <Button variant="primary">Open party chat</Button>
             </Link>
           </div>
