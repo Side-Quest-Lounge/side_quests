@@ -10,10 +10,38 @@ import type { MeProfileResponse } from "./types";
 
 export const ME_PROFILE_UPDATED = "sq-me-profile-updated";
 
+let cachedProfile: MeProfileResponse | null = null;
+let inflightProfile: Promise<MeProfileResponse | null> | null = null;
+
+export function invalidateMeProfileCache(): void {
+  cachedProfile = null;
+}
+
 export function notifyMeProfileUpdated(): void {
+  invalidateMeProfileCache();
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(ME_PROFILE_UPDATED));
   }
+}
+
+async function fetchMeProfile(): Promise<MeProfileResponse | null> {
+  if (cachedProfile) return cachedProfile;
+  if (inflightProfile) return inflightProfile;
+
+  inflightProfile = (async () => {
+    try {
+      const res = await fetch("/api/me/profile");
+      if (res.status === 401) return null;
+      if (!res.ok) throw new Error("Could not load profile");
+      const data = (await res.json()) as MeProfileResponse;
+      cachedProfile = data;
+      return data;
+    } finally {
+      inflightProfile = null;
+    }
+  })();
+
+  return inflightProfile;
 }
 
 type MeProfileState = {
@@ -51,21 +79,29 @@ export function useMeProfile(): MeProfileState {
       return;
     }
 
+    if (!clerkLoaded) {
+      setLoading(true);
+      return;
+    }
+
+    if (!isSignedIn) {
+      setUser(null);
+      setProfile(null);
+      setError("unauth");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/me/profile");
-      if (res.status === 401) {
+      const data = await fetchMeProfile();
+      if (!data) {
         setUser(null);
         setProfile(null);
         setError("unauth");
         return;
       }
-      if (!res.ok) {
-        setError("Could not load profile");
-        return;
-      }
-      const data = (await res.json()) as MeProfileResponse;
       setUser(data.user);
       setProfile(data.profile);
     } catch {
@@ -73,15 +109,11 @@ export function useMeProfile(): MeProfileState {
     } finally {
       setLoading(false);
     }
-  }, [applyDemoState]);
+  }, [applyDemoState, clerkLoaded, isSignedIn]);
 
   useEffect(() => {
     void refetch();
   }, [refetch]);
-
-  useEffect(() => {
-    if (DEMO) applyDemoState();
-  }, [DEMO, applyDemoState]);
 
   useEffect(() => {
     const onUpdate = () => void refetch();
@@ -89,12 +121,22 @@ export function useMeProfile(): MeProfileState {
     return () => window.removeEventListener(ME_PROFILE_UPDATED, onUpdate);
   }, [refetch]);
 
+  const displayUser =
+    user ??
+    (isSignedIn && clerkUser
+      ? {
+          name: clerkDisplayName(clerkUser),
+          bio: null,
+          isNewcomer: true,
+        }
+      : null);
+
   return {
     loading,
     error,
-    user,
+    user: displayUser,
     profile,
-    hasProfile: DEMO ? isProfileComplete() : !!profile,
+    hasProfile: !!profile,
     refetch,
   };
 }

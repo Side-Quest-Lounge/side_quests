@@ -12,7 +12,6 @@ export type MeProfile = {
 export type MeProfileResponse = {
   user: MeUser;
   profile: MeProfile | null;
-  demo?: boolean;
 };
 
 export type MeGroupMember = {
@@ -36,4 +35,23 @@ export type MeGroup = {
 
 export type MeGroupResponse = {
   group: MeGroup | null;
+};
+
+export type PastQuest = {
+  id: string;
+  emoji: string;
+  title: string;
+  date: string;
+  vibeScore: number | null;
+};
+
+export type MeQuestsResponse = {
+  past: PastQuest[];
+};
+
+export type ChatMessage = {
+  id: string;
+  author: string;
+  body: string;
+  createdAt: string;
 };

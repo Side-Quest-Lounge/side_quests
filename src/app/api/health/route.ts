@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { DEMO } from "@/lib/demo";
 
 /** Public liveness check for deploys and uptime monitors. Does not query Aurora. */
 export async function GET(): Promise<NextResponse> {
@@ -13,12 +12,11 @@ export async function GET(): Promise<NextResponse> {
     bedrock: Boolean(process.env.AWS_REGION),
   };
 
-  const ok = DEMO || (configured.aurora && configured.clerk);
+  const ok = configured.aurora && configured.clerk;
 
   return NextResponse.json(
     {
       ok,
-      demo: DEMO,
       configured,
       ts: new Date().toISOString(),
     },

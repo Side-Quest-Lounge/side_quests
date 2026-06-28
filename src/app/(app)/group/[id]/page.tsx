@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Avatar, Button, Card, Pill } from "@/components/ui";
 import { DEMO, DEMO_GROUP_ID, demoGroup } from "@/lib/demo";
+import { PAYMENTS_DISABLED } from "@/lib/payments";
 import { canViewFullQuest } from "@/lib/seat-access";
 
 type Member = {
@@ -31,36 +32,67 @@ export default function GroupRevealPage() {
   const searchParams = useSearchParams();
   const isDemoGroup = DEMO || id === DEMO_GROUP_ID;
   const [group, setGroup] = useState<GroupData | null>(isDemoGroup ? demoGroup : null);
+  const [notFound, setNotFound] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [justConfirmed, setJustConfirmed] = useState(false);
 
   useEffect(() => {
     if (isDemoGroup) {
       setGroup(demoGroup);
       return;
     }
+
     async function load() {
       const res = await fetch("/api/me/group");
-      if (!res.ok) return;
+      if (!res.ok) {
+        setNotFound(true);
+        return;
+      }
       const data = (await res.json()) as { group: GroupData | null };
-      if (data.group?.id === id) setGroup(data.group);
+      if (!data.group || data.group.id !== id) {
+        setNotFound(true);
+        return;
+      }
+      setGroup(data.group);
     }
     void load();
   }, [id, isDemoGroup]);
 
   async function confirmSeat() {
-    if (DEMO) {
-      setGroup((g) => (g ? { ...g, subscriptionStatus: "active" } : g));
-      return;
-    }
     setCheckoutLoading(true);
-    const res = await fetch("/api/stripe/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ groupId: id }),
-    });
-    const data = (await res.json()) as { url?: string };
-    if (data.url) window.location.href = data.url;
-    setCheckoutLoading(false);
+    try {
+      if (PAYMENTS_DISABLED) {
+        const res = await fetch("/api/me/confirm-seat", { method: "POST" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { status: string };
+        setGroup((g) => (g ? { ...g, subscriptionStatus: data.status } : g));
+        setJustConfirmed(true);
+        return;
+      }
+
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId: id }),
+      });
+      const data = (await res.json()) as { url?: string };
+      if (data.url) window.location.href = data.url;
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
+
+  if (notFound) {
+    return (
+      <Card style={{ maxWidth: 480, margin: "0 auto", textAlign: "center" }}>
+        <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-4)" }}>
+          This group wasn&apos;t found or isn&apos;t yours.
+        </p>
+        <Link href="/home">
+          <Button variant="primary">Back to home</Button>
+        </Link>
+      </Card>
+    );
   }
 
   if (!group) {
@@ -88,7 +120,7 @@ export default function GroupRevealPage() {
         {unlocked ? "Your party has assembled" : "Your party is ready"}
       </h1>
 
-      {checkoutSuccess && unlocked && (
+      {(justConfirmed || checkoutSuccess) && unlocked && (
         <Card style={{ marginBottom: "var(--space-5)", background: "var(--success-bg)" }}>
           Seat confirmed — see you there! 🎉
         </Card>
@@ -132,7 +164,7 @@ export default function GroupRevealPage() {
           ) : (
             <div>
               <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-4)" }}>
-                {group.members.length} people matched for this quest.
+                {`${group.members.length} people matched for this quest.`}
               </p>
               <div style={{ display: "flex", filter: "blur(6px)", opacity: 0.55, pointerEvents: "none" }}>
                 {group.members.slice(0, 4).map((m, i) => (
@@ -207,7 +239,13 @@ export default function GroupRevealPage() {
         </Link>
       ) : (
         <Button variant="primary" style={{ minHeight: 54 }} onClick={() => void confirmSeat()} disabled={checkoutLoading}>
-          {checkoutLoading ? "Opening checkout…" : "Confirm my seat — $25/mo"}
+          {checkoutLoading
+            ? PAYMENTS_DISABLED
+              ? "Confirming…"
+              : "Opening checkout…"
+            : PAYMENTS_DISABLED
+              ? "Confirm my seat →"
+              : "Confirm my seat — $25/mo"}
         </Button>
       )}
 

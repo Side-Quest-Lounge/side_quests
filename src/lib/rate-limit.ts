@@ -1,20 +1,21 @@
 /**
  * Per-route rate limits stored in Aurora (works across Vercel serverless).
- * Disabled in demo mode; fails open if rate_limits table is missing.
+ * Fails open if rate_limits table is missing.
  */
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { rateLimits } from "@/db/schema";
-import { DEMO } from "@/lib/demo";
 
 export type RateLimitScope =
   | "match"
   | "reveal"
   | "profile"
   | "chat"
+  | "chat_poll"
   | "agent_host"
   | "survey"
-  | "stripe_checkout";
+  | "stripe_checkout"
+  | "confirm_seat";
 
 type LimitConfig = { max: number; windowMs: number };
 
@@ -24,25 +25,22 @@ const LIMITS: Record<RateLimitScope, LimitConfig> = {
   reveal: { max: 3, windowMs: 60 * 60 * 1000 },
   profile: { max: 10, windowMs: 60 * 60 * 1000 },
   chat: { max: 30, windowMs: 60 * 1000 },
+  chat_poll: { max: 120, windowMs: 60 * 1000 },
   agent_host: { max: 5, windowMs: 60 * 60 * 1000 },
   survey: { max: 5, windowMs: 24 * 60 * 60 * 1000 },
   stripe_checkout: { max: 10, windowMs: 60 * 60 * 1000 },
+  confirm_seat: { max: 5, windowMs: 60 * 60 * 1000 },
 };
 
 export type RateLimitResult =
   | { ok: true }
   | { ok: false; retryAfterSec: number };
 
-/**
- * Fixed-window counter stored in Aurora (works across Vercel serverless instances).
- * Skipped in demo mode.
- */
+/** Fixed-window counter stored in Aurora (works across Vercel serverless instances). */
 export async function checkRateLimit(
   scope: RateLimitScope,
   identifier: string,
 ): Promise<RateLimitResult> {
-  if (DEMO) return { ok: true };
-
   const { max, windowMs } = LIMITS[scope];
   const key = `${scope}:${identifier}`;
   const now = new Date();

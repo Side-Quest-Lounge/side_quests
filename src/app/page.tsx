@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Button, Card, Avatar } from "@/components/ui";
+import { DEMO } from "@/lib/demo";
 
 const container = {
   hidden: { opacity: 0 },
@@ -73,6 +74,13 @@ export default function Home() {
             Log in
           </Button>
         </Link>
+        {DEMO && (
+          <Link href="/home" style={{ marginLeft: "var(--space-2)" }}>
+            <Button variant="primary" style={{ minHeight: 42, fontSize: "var(--text-sm)" }}>
+              Try demo
+            </Button>
+          </Link>
+        )}
       </header>
 
       <main
@@ -246,16 +254,7 @@ export default function Home() {
             you are.
           </p>
           <Link href="/sign-up">
-            <Button
-              variant="primary"
-              style={{
-                minHeight: 54,
-                fontSize: "var(--text-lg)",
-                background: "#1a1535",
-                color: "var(--parchment)",
-                boxShadow: "0 12px 30px rgba(0,0,0,0.32)",
-              }}
-            >
+            <Button variant="primary" style={{ minHeight: 54, fontSize: "var(--text-lg)" }}>
               Accept the quest — it&apos;s free
             </Button>
           </Link>

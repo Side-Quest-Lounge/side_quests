@@ -177,6 +177,21 @@ button {
   outline: none;
 }
 
+/* Global button polish (matches open-quest tile soft style) */
+.sq-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sq-btn--primary:not(:disabled):hover {
+  background: rgba(54, 205, 182, 0.22) !important;
+}
+
+.sq-btn--accent:not(:disabled):hover,
+.sq-btn--ghost:not(:disabled):hover {
+  background: var(--cream-deep) !important;
+}
+
 ::selection {
   background: rgba(54, 205, 182, 0.28);
   color: var(--ink);
@@ -345,8 +360,263 @@ button {
 /* Two-up card row that collapses on narrow screens */
 .dash-duo {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
+}
+
+@media (max-width: 720px) {
+  .dash-duo {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Open quest tiles — inner cards on home + explore grid */
+.open-quest-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 720px) {
+  .open-quest-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.open-quest-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface-2-raw) 0%, var(--surface-raw) 100%);
+  min-width: 0;
+  min-height: 100%;
+}
+
+.open-quest-tile.is-highlighted {
+  outline: 2px solid var(--lantern);
+  box-shadow: var(--shadow-md), 0 0 0 4px rgba(255, 178, 74, 0.2);
+}
+
+.open-quest-tile.is-joined {
+  border-color: rgba(54, 205, 182, 0.45);
+  background: linear-gradient(180deg, rgba(54, 205, 182, 0.1) 0%, var(--surface-raw) 100%);
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px rgba(54, 205, 182, 0.12);
+}
+
+.open-quest-tile__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.open-quest-tile__badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.open-quest-tile__joined-pill {
+  white-space: nowrap;
+  font-size: 0.75rem;
+  padding: 0.28rem 0.6rem;
+}
+
+.open-quest-tile__emoji {
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.open-quest-tile__spots {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  padding: 0.3rem 0.65rem;
+}
+
+.open-quest-tile__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+  margin: 0;
+}
+
+.open-quest-tile--full .open-quest-tile__title {
+  font-size: var(--text-lg);
+}
+
+.open-quest-tile__when {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--lantern-ink);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.open-quest-tile__venue {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  margin: 0;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.open-quest-tile__social {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: auto;
+}
+
+.open-quest-tile__avatars {
+  display: flex;
+}
+
+.open-quest-tile__going {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+}
+
+.open-quest-tile__footer {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.open-quest-tile__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.open-quest-tile__actions--row {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.open-quest-tile__action-link {
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.open-quest-tile__btn {
+  min-height: 36px !important;
+  padding: 0 var(--space-3) !important;
+  font-size: 0.8125rem !important;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.open-quest-tile__actions--row .open-quest-tile__btn {
+  width: auto;
+}
+
+.open-quest-tile__actions--row .open-quest-tile__action-link .open-quest-tile__btn {
+  width: 100%;
+}
+
+.open-quest-tile__btn--join {
+  width: 100%;
+}
+
+/* Chat inbox — list of party + open quest rooms */
+.chat-inbox__label {
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 var(--space-3);
+}
+
+.chat-inbox__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.chat-inbox__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-raw);
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.chat-inbox__row:hover {
+  background: var(--surface-2-raw);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-inbox__emoji {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 2rem;
+  text-align: center;
+}
+
+.chat-inbox__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chat-inbox__title {
+  font-weight: 700;
+  font-size: var(--text-base);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-inbox__meta {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-inbox__avatars {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.chat-inbox__pill {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.55rem;
+}
+
+.open-quest-grid--explore {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
 .dash-link {

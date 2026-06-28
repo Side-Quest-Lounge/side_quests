@@ -23,12 +23,7 @@ export default function SignUpPage() {
         signInUrl="/sign-in"
         fallbackRedirectUrl="/onboarding"
       />
-      {DEMO && (
-        <DemoGuestEntry
-          destination="/home"
-          buttonLabel="Try demo first, sign up later →"
-        />
-      )}
+      {DEMO && <DemoGuestEntry destination="/home" buttonLabel="Explore demo as guest →" />}
     </ClerkAuthShell>
   );
 }

@@ -35,6 +35,9 @@ export async function GET(
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
+    const limited = await enforceRateLimit("chat_poll", user.id, groupId);
+    if (limited) return limited;
+
     const sinceDate = parseSinceParam(req.nextUrl.searchParams.get("since"));
     const rows = sinceDate
       ? await db

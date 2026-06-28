@@ -4,20 +4,9 @@ import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Card, Pill } from "@/components/ui";
-import { DEMO } from "@/lib/demo";
 import { useMeProfile } from "@/lib/api/use-me-profile";
 
-function AfterAuthDemo() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/home");
-  }, [router]);
-
-  return <AfterAuthShell />;
-}
-
-function AfterAuthClerk() {
+export default function AfterAuthPage() {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
   const { loading, hasProfile, error } = useMeProfile();
@@ -45,14 +34,6 @@ function AfterAuthClerk() {
   }, [isLoaded, isSignedIn, loading, hasProfile, error, router, routed]);
 
   return (
-    <AfterAuthShell
-      error={error && error !== "unauth" ? "Could not load your profile. Try again." : undefined}
-    />
-  );
-}
-
-function AfterAuthShell({ error }: { error?: string }) {
-  return (
     <main
       style={{
         minHeight: "100vh",
@@ -66,17 +47,12 @@ function AfterAuthShell({ error }: { error?: string }) {
         <Pill tone="sunny" style={{ marginBottom: "var(--space-4)" }}>
           Signing you in
         </Pill>
-        {error ? (
-          <p style={{ color: "var(--coral)", fontWeight: 600 }}>{error}</p>
+        {error && error !== "unauth" ? (
+          <p style={{ color: "var(--coral)", fontWeight: 600 }}>Could not load your profile. Try again.</p>
         ) : (
           <p style={{ color: "var(--ink-soft)" }}>One moment…</p>
         )}
       </Card>
     </main>
   );
-}
-
-export default function AfterAuthPage() {
-  if (DEMO) return <AfterAuthDemo />;
-  return <AfterAuthClerk />;
 }

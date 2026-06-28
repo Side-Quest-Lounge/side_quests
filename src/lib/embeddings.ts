@@ -134,6 +134,7 @@ export async function embedTextWithFallback(
     return { embedding, source: "bedrock" };
   } catch (err) {
     if (allowDeterministic && isRetryableBedrockError(err)) {
+      console.warn("[embeddings] Bedrock throttled — using deterministic embedding");
       return { embedding: deterministicEmbed(text), source: "deterministic" };
     }
     throw err;
@@ -158,12 +159,13 @@ export async function embedProfile(
 ): Promise<number[] | null> {
   let text = profileToText(answers, bio ?? undefined);
   if (likes?.length) text += "; likes: " + likes.join(", ");
+  const allowDeterministic = process.env.ALLOW_DETERMINISTIC_EMBEDDINGS === "1";
   try {
-    // Quiz save UI already waits — retry throttling for up to ~30s before giving up.
     const { embedding } = await embedTextWithFallback(text, {
-      allowDeterministic: process.env.ALLOW_DETERMINISTIC_EMBEDDINGS === "1",
-      maxAttempts: 5,
-      baseDelayMs: 3000,
+      allowDeterministic,
+      // When deterministic is allowed, don't burn 30s retrying a dead Bedrock quota.
+      maxAttempts: allowDeterministic ? 1 : 5,
+      baseDelayMs: allowDeterministic ? 0 : 3000,
     });
     return embedding;
   } catch (err) {

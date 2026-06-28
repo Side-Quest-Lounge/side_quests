@@ -1,12 +1,15 @@
-/** Route builders for group/chat links. Falls back to demo group id when none passed. */
-import { DEMO, DEMO_GROUP_ID, demoGroup } from "@/lib/demo";
+/** Route builders for group/chat links. */
 
-export function groupPath(groupId?: string): string {
-  return `/group/${groupId ?? (DEMO ? demoGroup.id : DEMO_GROUP_ID)}`;
+export function groupPath(groupId: string | null | undefined): string {
+  return groupId ? `/group/${groupId}` : "/finding";
 }
 
-export function chatPath(groupId?: string): string {
-  return `/chat/${groupId ?? (DEMO ? demoGroup.id : DEMO_GROUP_ID)}`;
+export function chatPath(groupId: string | null | undefined): string {
+  return groupId ? `/chat/${groupId}` : "/home";
+}
+
+export function openQuestChatPath(questId: string): string {
+  return `/chat/open-${encodeURIComponent(questId)}`;
 }
 
 export function exploreQuestPath(questId: string): string {

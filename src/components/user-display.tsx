@@ -4,8 +4,7 @@
  */
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
-import { useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import type { ReactNode } from "react";
 import { useMeProfile } from "@/lib/api/use-me-profile";
 import { DEMO, DEMO_GUEST_NAME } from "@/lib/demo";
@@ -30,9 +29,7 @@ function ProfileAwareDisplayName({ children }: { children: (name: string) => Rea
 
   const clerkName =
     isLoaded && clerkUser ? clerkDisplayName(clerkUser) : DEMO ? DEMO_GUEST_NAME : "Friend";
-  const name = !loading
-    ? resolveDisplayName(user?.name, hasProfile, clerkName)
-    : clerkName;
+  const name = !loading ? resolveDisplayName(user?.name, hasProfile, clerkName) : clerkName;
 
   return <>{children(name)}</>;
 }

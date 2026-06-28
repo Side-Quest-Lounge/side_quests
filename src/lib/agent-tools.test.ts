@@ -22,3 +22,10 @@ test("pickStartTime returns a Saturday at 4pm", () => {
   expect(d.getDay()).toBe(6);
   expect(d.getHours()).toBe(16);
 });
+
+test("pickStartTime accepts ISO week labels from events.week_of", () => {
+  const d = pickStartTime("2026-W26");
+  expect(Number.isNaN(d.getTime())).toBe(false);
+  expect(d.getDay()).toBe(6);
+  expect(d.getHours()).toBe(16);
+});

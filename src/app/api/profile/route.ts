@@ -5,7 +5,6 @@ import { getOrCreateUser } from "@/lib/current-user";
 import { embedProfile } from "@/lib/embeddings";
 import { db } from "@/db/client";
 import { users, profiles } from "@/db/schema";
-import { DEMO } from "@/lib/demo";
 import { enforceRateLimit, internalError, parseBody } from "@/lib/api-helpers";
 import { profilePatchSchema, profilePostSchema } from "@/lib/validators";
 
@@ -19,10 +18,6 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const parsed = await parseBody(req, profilePatchSchema);
     if (!parsed.success) return parsed.response;
-
-    if (DEMO) {
-      return NextResponse.json({ ok: true, demo: true });
-    }
 
     const user = await requireUser();
     if (user instanceof NextResponse) return user;
@@ -67,10 +62,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const parsed = await parseBody(req, profilePostSchema);
     if (!parsed.success) return parsed.response;
-
-    if (DEMO) {
-      return NextResponse.json({ ok: true, demo: true });
-    }
 
     const user = await requireUser();
     if (user instanceof NextResponse) return user;

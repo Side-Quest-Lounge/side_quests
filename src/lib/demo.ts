@@ -23,7 +23,7 @@ export type DemoGroup = {
   status: string;
   rationale: string;
   icebreakers: string[];
-  venue: { name: string; activityType: string; address: string } | null;
+  venue: { id: string; name: string; activityType: string; address: string } | null;
   startsAt: string | null;
   subscriptionStatus: string;
   members: DemoMember[];
@@ -40,6 +40,7 @@ export const demoGroup: DemoGroup = {
     "What made you pick Tāmaki Makaurau?",
   ],
   venue: {
+    id: "demo-venue",
     name: "Coffee & a coastal walk",
     activityType: "Easy outdoors",
     address: "Mission Bay · meet by the fountain",

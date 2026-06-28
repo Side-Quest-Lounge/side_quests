@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { getOrCreateUser } from "@/lib/current-user";
 import { db } from "@/db/client";
 import { agentTraces, groupMembers, groups, messages } from "@/db/schema";
-import { parseRevealPayload } from "@/lib/agent-tools";
+import { parseRevealPayload, serializeRevealPayload } from "@/lib/agent-tools";
 import { enforceRateLimit, internalError, parseBody } from "@/lib/api-helpers";
 import { agentHostSchema } from "@/lib/validators";
 
@@ -33,16 +33,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const limited = await enforceRateLimit("agent_host", user.id, groupId);
     if (limited) return limited;
 
-    const existing = await db
-      .select()
-      .from(messages)
-      .where(and(eq(messages.groupId, groupId), eq(messages.author, "agent")))
-      .limit(1);
-
-    if (existing.length > 0 && action !== "nudge") {
-      return NextResponse.json({ ok: true, alreadyWelcomed: true });
-    }
-
     if (action === "nudge") {
       const nudge =
         "Hey everyone — drop a quick hello if you're around! What's one thing you're looking forward to this week? 👋";
@@ -57,7 +47,46 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
-    const { rationale, icebreakers } = parseRevealPayload(group?.agentRationale ?? null);
+    if (!group) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+    const { rationale, icebreakers, chatWelcomed } = parseRevealPayload(group.agentRationale);
+    if (chatWelcomed) {
+      return NextResponse.json({ ok: true, alreadyWelcomed: true });
+    }
+
+    const existingAgent = await db
+      .select({ id: messages.id })
+      .from(messages)
+      .where(and(eq(messages.groupId, groupId), eq(messages.author, "agent")))
+      .limit(1);
+
+    if (existingAgent.length > 0) {
+      await db
+        .update(groups)
+        .set({
+          agentRationale: serializeRevealPayload(rationale, icebreakers, { chatWelcomed: true }),
+        })
+        .where(eq(groups.id, groupId));
+      return NextResponse.json({ ok: true, alreadyWelcomed: true });
+    }
+
+    // Atomic claim — only one concurrent request can set chatWelcomed and post messages.
+    const claimed = await db
+      .update(groups)
+      .set({
+        agentRationale: serializeRevealPayload(rationale, icebreakers, { chatWelcomed: true }),
+      })
+      .where(
+        and(
+          eq(groups.id, groupId),
+          sql`(agent_rationale IS NULL OR agent_rationale NOT LIKE ${'%"chatWelcomed":true%'})`,
+        ),
+      )
+      .returning({ id: groups.id });
+
+    if (claimed.length === 0) {
+      return NextResponse.json({ ok: true, alreadyWelcomed: true });
+    }
 
     const welcome = rationale
       ? `Welcome to your Side Quest group! 🎉\n\n${rationale}`
@@ -65,18 +94,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     await db.insert(messages).values({ groupId, author: "agent", body: welcome.slice(0, 2000) });
 
-    for (const ib of icebreakers.slice(0, 5)) {
+    const prompts = icebreakers.slice(0, 3);
+    if (prompts.length > 0) {
+      const icebreakerBlock = prompts.map((ib, i) => `${i + 1}. ${ib}`).join("\n");
       await db.insert(messages).values({
         groupId,
         author: "agent",
-        body: `💬 ${ib}`.slice(0, 2000),
+        body: `💬 Icebreakers to get you started:\n\n${icebreakerBlock}`.slice(0, 2000),
       });
     }
 
     await db.insert(agentTraces).values({
       userId: user.id,
       tool: "postIcebreakers",
-      args: { groupId, count: icebreakers.length },
+      args: { groupId, count: prompts.length },
       result: { welcome: true },
     });
 
