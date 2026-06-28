@@ -4,35 +4,23 @@
  */
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { useUser } from "@clerk/nextjs";
 import type { ReactNode } from "react";
 import { useMeProfile } from "@/lib/api/use-me-profile";
-import { DEMO, demoUser } from "@/lib/demo";
+import { DEMO, DEMO_GUEST_NAME } from "@/lib/demo";
+import { clerkDisplayName, resolveDisplayName } from "@/lib/display-name";
 
-const DEFAULT_DB_NAME = "Friend";
-
-export function clerkDisplayName(user: NonNullable<ReturnType<typeof useUser>["user"]>): string {
-  return (
-    user.firstName ??
-    user.fullName ??
-    user.username ??
-    user.emailAddresses[0]?.emailAddress?.split("@")[0] ??
-    demoUser.name
-  );
-}
-
-/** Prefer name saved during onboarding/quiz; fall back to Clerk while unset. */
-export function resolveDisplayName(
-  dbName: string | null | undefined,
-  hasProfile: boolean,
-  clerkName: string,
-): string {
-  if (dbName && (hasProfile || dbName !== DEFAULT_DB_NAME)) return dbName;
-  return clerkName;
-}
+export { clerkDisplayName, resolveDisplayName } from "@/lib/display-name";
 
 export function DisplayName({ children }: { children: (name: string) => ReactNode }) {
-  if (DEMO) return <>{children(demoUser.name)}</>;
+  if (DEMO) return <DemoDisplayName>{children}</DemoDisplayName>;
+  return <ProfileAwareDisplayName>{children}</ProfileAwareDisplayName>;
+}
+
+function DemoDisplayName({ children }: { children: (name: string) => ReactNode }) {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded || !isSignedIn) return <>{children(DEMO_GUEST_NAME)}</>;
   return <ProfileAwareDisplayName>{children}</ProfileAwareDisplayName>;
 }
 
@@ -41,7 +29,7 @@ function ProfileAwareDisplayName({ children }: { children: (name: string) => Rea
   const { user: clerkUser, isLoaded } = useUser();
 
   const clerkName =
-    isLoaded && clerkUser ? clerkDisplayName(clerkUser) : demoUser.name;
+    isLoaded && clerkUser ? clerkDisplayName(clerkUser) : DEMO ? DEMO_GUEST_NAME : "Friend";
   const name = !loading
     ? resolveDisplayName(user?.name, hasProfile, clerkName)
     : clerkName;

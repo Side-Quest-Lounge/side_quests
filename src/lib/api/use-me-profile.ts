@@ -1,8 +1,10 @@
 "use client";
 
 /** Client hook: signed-in user + profile row from GET /api/me/profile. */
+import { useUser } from "@clerk/nextjs";
 import { useCallback, useEffect, useState } from "react";
-import { DEMO } from "@/lib/demo";
+import { clerkDisplayName } from "@/lib/display-name";
+import { DEMO, DEMO_GUEST_NAME } from "@/lib/demo";
 import { isProfileComplete } from "@/lib/onboarding-session";
 import type { MeProfileResponse } from "./types";
 
@@ -24,17 +26,28 @@ type MeProfileState = {
 };
 
 export function useMeProfile(): MeProfileState {
+  const { isLoaded: clerkLoaded, isSignedIn, user: clerkUser } = useUser();
   const [loading, setLoading] = useState(!DEMO);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<MeProfileResponse["user"] | null>(null);
   const [profile, setProfile] = useState<MeProfileResponse["profile"]>(null);
 
+  const applyDemoState = useCallback(() => {
+    if (!clerkLoaded) {
+      setLoading(true);
+      return;
+    }
+    const demoName =
+      isSignedIn && clerkUser ? clerkDisplayName(clerkUser) : DEMO_GUEST_NAME;
+    setUser({ name: demoName, bio: null, isNewcomer: true });
+    setProfile(isProfileComplete() ? { answers: {} } : null);
+    setLoading(false);
+    setError(null);
+  }, [clerkLoaded, isSignedIn, clerkUser]);
+
   const refetch = useCallback(async () => {
     if (DEMO) {
-      setUser({ name: "Alex", bio: null, isNewcomer: true });
-      setProfile(isProfileComplete() ? { answers: {} } : null);
-      setLoading(false);
-      setError(null);
+      applyDemoState();
       return;
     }
 
@@ -60,11 +73,15 @@ export function useMeProfile(): MeProfileState {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyDemoState]);
 
   useEffect(() => {
     void refetch();
   }, [refetch]);
+
+  useEffect(() => {
+    if (DEMO) applyDemoState();
+  }, [DEMO, applyDemoState]);
 
   useEffect(() => {
     const onUpdate = () => void refetch();
