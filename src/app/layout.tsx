@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Bricolage_Grotesque, Plus_Jakarta_Sans, Space_Mono } from "next/font/google";
-import { DEMO } from "@/lib/demo";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -36,7 +35,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const body = DEMO ? <>{children}</> : <ClerkProvider>{children}</ClerkProvider>;
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const body =
+    publishableKey != null && publishableKey !== "" ? (
+      <ClerkProvider>{children}</ClerkProvider>
+    ) : (
+      children
+    );
 
   return (
     <html lang="en" className={`${jakarta.variable} ${bricolage.variable} ${spaceMono.variable}`}>
