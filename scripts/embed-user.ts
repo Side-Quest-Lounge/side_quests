@@ -8,6 +8,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "../src/db/client";
 import { profiles, users } from "../src/db/schema";
 import { embedProfile } from "../src/lib/embeddings";
+import { setProfileEmbedding } from "../src/lib/profile-embedding";
 
 async function main(): Promise<void> {
   const userId = process.argv[2];
@@ -47,11 +48,11 @@ async function main(): Promise<void> {
 
   if (!embedding) {
     console.error("Failed — Bedrock still throttling or unavailable.");
-    console.error("Wait 30–60 min, then run this command again.");
+    console.error("Set ALLOW_DETERMINISTIC_EMBEDDINGS=1 for hash-based fallback, or request a Bedrock quota increase.");
     process.exit(1);
   }
 
-  await db.update(profiles).set({ embedding }).where(eq(profiles.userId, targetId));
+  await setProfileEmbedding(targetId, embedding);
   console.log("Success — stored", embedding.length, "dimensional embedding.");
 }
 

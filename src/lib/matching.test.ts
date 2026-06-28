@@ -19,7 +19,7 @@ test("anchor is first even when not the top scorer", () => {
 });
 
 test("toVec formats a pgvector literal", () => {
-  expect(toVec([0.1, 0.2])).toBe("'[0.1,0.2]'::vector");
+  expect(toVec([0.1, 0.2])).toBe("'[0.10000000,0.20000000]'::vector");
 });
 
 test("filterAvailableCandidates removes users already in a group", () => {

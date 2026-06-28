@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
+import { setProfileEmbedding } from "@/lib/profile-embedding";
 import { getOrCreateUser } from "@/lib/current-user";
 import { embedProfile } from "@/lib/embeddings";
 import { db } from "@/db/client";
@@ -51,10 +52,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     if (profile?.answers) {
       const embedding = await embedProfile(profile.answers, bioValue);
       if (embedding) {
-        await db
-          .update(profiles)
-          .set({ embedding })
-          .where(eq(profiles.userId, user.id));
+        await setProfileEmbedding(user.id, embedding);
         embedded = true;
       }
     }
@@ -96,18 +94,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     await db
       .insert(profiles)
-      .values({
-        userId: user.id,
-        answers,
-        ...(embedding ? { embedding } : {}),
-      })
+      .values({ userId: user.id, answers })
       .onConflictDoUpdate({
         target: profiles.userId,
-        set: {
-          answers,
-          ...(embedding ? { embedding } : {}),
-        },
+        set: { answers },
       });
+
+    if (embedding) {
+      await setProfileEmbedding(user.id, embedding);
+    }
 
     return NextResponse.json({ ok: true, embedded: Boolean(embedding) });
   } catch (err) {

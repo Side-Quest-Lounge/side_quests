@@ -10,15 +10,25 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "../src/db/client";
 import { events, profiles, users, venues } from "../src/db/schema";
-import { embedTextWithRetry, profileToText } from "../src/lib/embeddings";
+import {
+  deterministicEmbed,
+  embedText,
+  embedTextWithFallback,
+  isBedrockThrottleError,
+  profileToText,
+} from "../src/lib/embeddings";
+import { setProfileEmbedding } from "../src/lib/profile-embedding";
 import {
   buildSeedPersonas,
   currentWeekLabel,
   SEED_VENUES,
 } from "../src/lib/seed-data";
 
-const DELAY_BETWEEN_EMBEDS_MS = 1500;
+import { parseRdsCount, parseRdsRows } from "../src/lib/rds-rows";
+
+const DELAY_BETWEEN_EMBEDS_MS = Number(process.env.DELAY_BETWEEN_EMBEDS_MS ?? 1500);
 const INITIAL_COOLDOWN_MS = Number(process.env.SEED_COOLDOWN_MS ?? 10_000);
+const SEED_DETERMINISTIC = process.env.SEED_DETERMINISTIC === "1";
 const MAX_CONSECUTIVE_THROTTLES = 3;
 
 function sleep(ms: number): Promise<void> {
@@ -29,14 +39,14 @@ async function countEmbeddedSeedProfiles(): Promise<number> {
   const rows = await db.execute(
     sql`SELECT count(*)::int AS n FROM profiles WHERE embedding IS NOT NULL AND user_id LIKE 'seed_%'`,
   );
-  return (rows as unknown as Array<{ n: number }>)[0]?.n ?? 0;
+  return parseRdsCount(rows, "n");
 }
 
 async function hasEmbedding(userId: string): Promise<boolean> {
   const rows = await db.execute(
-    sql`SELECT 1 FROM profiles WHERE user_id = ${userId} AND embedding IS NOT NULL LIMIT 1`,
+    sql`SELECT (embedding IS NOT NULL) AS has_emb FROM profiles WHERE user_id = ${userId} LIMIT 1`,
   );
-  return (rows as unknown as unknown[]).length > 0;
+  return parseRdsRows<{ has_emb: boolean }>(rows, ["has_emb"])[0]?.has_emb === true;
 }
 
 async function seedVenues(): Promise<void> {
@@ -85,11 +95,31 @@ async function seedPersonas(): Promise<void> {
     return;
   }
 
+  let useDeterministic = SEED_DETERMINISTIC;
+
   console.log(
     `Seeding ${personas.length} personas (${alreadyDone} already embedded, processing one at a time)...`,
   );
-  console.log(`Waiting ${INITIAL_COOLDOWN_MS / 1000}s before Bedrock calls (rate limit cooldown)...\n`);
-  await sleep(INITIAL_COOLDOWN_MS);
+  if (useDeterministic) {
+    console.log("SEED_DETERMINISTIC=1 — skipping Bedrock (hash-based embeddings for matching demos)\n");
+  } else {
+    console.log(`Waiting ${INITIAL_COOLDOWN_MS / 1000}s, then probing Bedrock...\n`);
+    await sleep(INITIAL_COOLDOWN_MS);
+    try {
+      await embedText("side quest seed probe");
+      console.log("Bedrock OK — using Titan embeddings\n");
+    } catch (err) {
+      if (isBedrockThrottleError(err)) {
+        console.warn(
+          "Bedrock throttled — account RPM quota exhausted. Using deterministic embeddings for this run.",
+        );
+        console.warn("Request a quota increase in AWS Service Quotas, or set SEED_DETERMINISTIC=1.\n");
+        useDeterministic = true;
+      } else {
+        throw err;
+      }
+    }
+  }
 
   const failed: string[] = [];
   let consecutiveThrottles = 0;
@@ -119,25 +149,29 @@ async function seedPersonas(): Promise<void> {
 
     try {
       const text = profileToText(persona.answers, persona.bio);
-      const embedding = await embedTextWithRetry(text);
+      const { embedding, source } = useDeterministic
+        ? { embedding: deterministicEmbed(text), source: "deterministic" as const }
+        : await embedTextWithFallback(text, { allowDeterministic: false, maxAttempts: 4, baseDelayMs: 5000 });
 
       await db
         .insert(profiles)
         .values({
           userId: persona.id,
           answers: persona.answers,
-          embedding,
         })
         .onConflictDoUpdate({
           target: profiles.userId,
-          set: { answers: persona.answers, embedding },
+          set: { answers: persona.answers },
         });
 
-      console.log(`  ✓ ${persona.id} ${persona.name}`);
+      await setProfileEmbedding(persona.id, embedding);
+
+      const tag = source === "deterministic" ? " (deterministic — Bedrock throttled)" : "";
+      console.log(`  ✓ ${persona.id} ${persona.name}${tag}`);
       consecutiveThrottles = 0;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      const throttled = message.includes("Too many requests") || message.includes("ThrottlingException");
+      const throttled = isBedrockThrottleError(err);
       console.error(`  ✗ ${persona.id} ${persona.name} — ${message.slice(0, 120)}`);
       failed.push(persona.id);
 
@@ -145,16 +179,19 @@ async function seedPersonas(): Promise<void> {
         consecutiveThrottles++;
         if (consecutiveThrottles >= MAX_CONSECUTIVE_THROTTLES) {
           console.error(
-            `\nBedrock rate limit hit ${MAX_CONSECUTIVE_THROTTLES} times in a row.`,
+            `\nBedrock still throttled after ${MAX_CONSECUTIVE_THROTTLES} failures in a row.`,
           );
-          console.error("Wait 10–15 minutes, then re-run:");
-          console.error("  SEED_COOLDOWN_MS=60000 npx dotenv -e .env.local -- npm run seed");
+          console.error("Your account RPM quota is likely exhausted — waiting 30 min won't reset it.");
+          console.error("Re-run with deterministic seed (good enough for hackathon matching):");
+          console.error("  SEED_DETERMINISTIC=1 npx dotenv -e .env.local -- npm run seed");
           break;
         }
       }
     }
 
-    await sleep(DELAY_BETWEEN_EMBEDS_MS);
+    if (!useDeterministic) {
+      await sleep(DELAY_BETWEEN_EMBEDS_MS);
+    }
   }
 
   if (failed.length > 0) {

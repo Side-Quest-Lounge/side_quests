@@ -14,7 +14,8 @@
     "embed:user": "tsx scripts/embed-user.ts",
     "inspect:db": "tsx scripts/inspect-db.ts",
     "demo:match": "tsx scripts/demo-match.ts",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "seed:local": "SEED_DETERMINISTIC=1 tsx scripts/seed.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",
