@@ -1,9 +1,19 @@
+/**
+ * Weekly matching: pgvector kNN → group of 6 → persist to Aurora.
+ *
+ * Guardrails: one group per user per open event; exclude already-assigned users;
+ * idempotent on retry / race (unique constraint on group_members).
+ */
 import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { groups, groupMembers } from "@/db/schema";
+import { isUniqueViolation } from "@/lib/api-helpers";
 
 export type Candidate = { userId: string; score: number };
 export type GroupMember = { userId: string; matchScore: number };
+export type MatchResult = { groupId: string; created: boolean };
+
+const GROUP_SIZE = 6;
 
 /**
  * Pure function: puts the seed user first with matchScore 1,
@@ -12,7 +22,7 @@ export type GroupMember = { userId: string; matchScore: number };
 export function buildGroups(
   candidates: Candidate[],
   seedUserId: string,
-  size: number = 6
+  size: number = GROUP_SIZE,
 ): GroupMember[] {
   const rest = candidates
     .filter((c) => c.userId !== seedUserId)
@@ -21,6 +31,15 @@ export function buildGroups(
     .map((c) => ({ userId: c.userId, matchScore: c.score }));
 
   return [{ userId: seedUserId, matchScore: 1 }, ...rest];
+}
+
+/** Drop users already placed in a group for this week's event. */
+export function filterAvailableCandidates(
+  candidates: Candidate[],
+  excludedUserIds: Iterable<string>,
+): Candidate[] {
+  const excluded = new Set(excludedUserIds);
+  return candidates.filter((c) => !excluded.has(c.userId));
 }
 
 /**
@@ -33,69 +52,116 @@ export function toVec(v: number[]): string {
   return `'[${v.join(",")}]'::vector`;
 }
 
+function codedError(message: string, code: string): Error {
+  const err = new Error(message);
+  (err as Error & { code: string }).code = code;
+  return err;
+}
+
+async function findOpenEventId(): Promise<string> {
+  const eventRows = await db.execute(
+    sql`SELECT id FROM events WHERE status = 'open' ORDER BY starts_at ASC LIMIT 1`,
+  );
+  const eventId = (eventRows as unknown as Array<{ id: string }>)[0]?.id;
+  if (!eventId) throw codedError("No open event found", "no_open_event");
+  return eventId;
+}
+
+async function findExistingGroupId(userId: string, eventId: string): Promise<string | null> {
+  const rows = await db.execute(sql`
+    SELECT g.id
+    FROM groups g
+    INNER JOIN group_members gm ON gm.group_id = g.id
+    WHERE gm.user_id = ${userId} AND g.event_id = ${eventId}
+    LIMIT 1
+  `);
+  return (rows as unknown as Array<{ id: string }>)[0]?.id ?? null;
+}
+
+async function findAssignedUserIds(eventId: string): Promise<Set<string>> {
+  const rows = await db.execute(sql`
+    SELECT gm.user_id
+    FROM group_members gm
+    INNER JOIN groups g ON g.id = gm.group_id
+    WHERE g.event_id = ${eventId}
+  `);
+  return new Set((rows as unknown as Array<{ user_id: string }>).map((r) => r.user_id));
+}
+
 /**
  * Runs the weekly matching round for a given user:
- * 1. Fetches the user's embedding from profiles.
- * 2. Runs a pgvector cosine-distance kNN to find the 30 nearest candidates.
- * 3. Builds a group via buildGroups.
- * 4. Persists a groups row (status "matched") + groupMembers rows.
- * Returns the created group id.
+ * 1. Returns existing group for this open event if already matched.
+ * 2. kNN pgvector search, excluding users already in a group this event.
+ * 3. Persists groups + group_members.
  */
-export async function runMatchingRound(userId: string): Promise<string> {
-  // Fetch seed user's embedding
+export async function runMatchingRound(userId: string): Promise<MatchResult> {
+  const eventId = await findOpenEventId();
+
+  const existingGroupId = await findExistingGroupId(userId, eventId);
+  if (existingGroupId) {
+    return { groupId: existingGroupId, created: false };
+  }
+
   const selfRows = await db.execute(
-    sql`SELECT embedding FROM profiles WHERE user_id = ${userId} LIMIT 1`
+    sql`SELECT embedding FROM profiles WHERE user_id = ${userId} LIMIT 1`,
   );
-  const selfRow = (selfRows as unknown as Array<{ embedding: number[] }>)[0];
-  if (!selfRow?.embedding) {
-    const err = new Error(`No embedding found for user ${userId}`);
-    (err as Error & { code: string }).code = "no_embedding";
-    throw err;
+  const embedding = (selfRows as unknown as Array<{ embedding: number[] }>)[0]?.embedding;
+  if (!embedding) {
+    throw codedError(`No embedding found for user ${userId}`, "no_embedding");
   }
-  const embedding = selfRow.embedding;
 
-  // Find the current open event
-  const eventRows = await db.execute(
-    sql`SELECT id FROM events WHERE status = 'open' ORDER BY starts_at ASC LIMIT 1`
-  );
-  const eventRow = (eventRows as unknown as Array<{ id: string }>)[0];
-  if (!eventRow?.id) {
-    const err = new Error("No open event found");
-    (err as Error & { code: string }).code = "no_open_event";
-    throw err;
-  }
-  const eventId = eventRow.id;
-
-  // kNN cosine distance query (lower <=> = more similar; score = 1 - distance)
+  const assigned = await findAssignedUserIds(eventId);
   const vecLiteral = toVec(embedding);
+
   const knnRows = await db.execute(sql`
     SELECT p.user_id, 1 - (p.embedding <=> ${sql.raw(vecLiteral)}) AS score
     FROM profiles p
     WHERE p.user_id <> ${userId}
+      AND p.embedding IS NOT NULL
+      AND p.user_id NOT IN (
+        SELECT gm.user_id
+        FROM group_members gm
+        INNER JOIN groups g ON g.id = gm.group_id
+        WHERE g.event_id = ${eventId}
+      )
     ORDER BY p.embedding <=> ${sql.raw(vecLiteral)}
     LIMIT 30
   `);
 
-  const candidates = (knnRows as unknown as Array<{ user_id: string; score: number }>).map(
-    (r) => ({ userId: r.user_id, score: r.score })
+  const knnCandidates = (knnRows as unknown as Array<{ user_id: string; score: number }>).map(
+    (r) => ({ userId: r.user_id, score: r.score }),
   );
+  const candidates = filterAvailableCandidates(knnCandidates, assigned);
 
-  const members = buildGroups(candidates, userId, 6);
+  if (candidates.length < GROUP_SIZE - 1) {
+    throw codedError(
+      `Need at least ${GROUP_SIZE - 1} available profiles (found ${candidates.length}). Run npm run seed.`,
+      "not_enough_candidates",
+    );
+  }
 
-  // Persist group
+  const members = buildGroups(candidates, userId, GROUP_SIZE);
+
   const [newGroup] = await db
     .insert(groups)
     .values({ eventId, status: "matched" })
     .returning({ id: groups.id });
 
-  // Persist group members
-  await db.insert(groupMembers).values(
-    members.map((m) => ({
-      groupId: newGroup.id,
-      userId: m.userId,
-      matchScore: m.matchScore,
-    }))
-  );
+  try {
+    await db.insert(groupMembers).values(
+      members.map((m) => ({
+        groupId: newGroup.id,
+        userId: m.userId,
+        matchScore: m.matchScore,
+      })),
+    );
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      const raced = await findExistingGroupId(userId, eventId);
+      if (raced) return { groupId: raced, created: false };
+    }
+    throw err;
+  }
 
-  return newGroup.id;
+  return { groupId: newGroup.id, created: true };
 }

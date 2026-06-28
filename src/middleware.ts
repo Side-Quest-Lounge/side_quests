@@ -1,3 +1,7 @@
+/**
+ * Clerk auth gate. Skipped entirely when NEXT_PUBLIC_DEMO_MODE=1.
+ * Public: landing, sign-in/up, Stripe webhook (Clerk cannot auth webhooks).
+ */
 import { NextResponse } from "next/server";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { DEMO } from "@/lib/demo";
@@ -6,12 +10,10 @@ const isPublic = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/onboarding(.*)",
-  "/quiz(.*)",
+  "/api/health",
   "/api/stripe/webhook",
 ]);
 
-// Demo mode has no auth provider configured, so let every request through.
 export default DEMO
   ? () => NextResponse.next()
   : clerkMiddleware(async (auth, req) => {
@@ -19,5 +21,8 @@ export default DEMO
     });
 
 export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)", "/(api|trpc)(.*)"],
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
 };

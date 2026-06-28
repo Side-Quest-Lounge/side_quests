@@ -2,17 +2,47 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { Button, Card, Field, Pill } from "@/components/ui";
+import { clerkDisplayName, resolveDisplayName } from "@/components/user-display";
+import { useMeProfile } from "@/lib/api/use-me-profile";
 import { saveOnboardingDraft, saveOnboardingNext } from "@/lib/onboarding-session";
 
 function OnboardingForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next");
+  const { loading, hasProfile, user } = useMeProfile();
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [isNewcomer, setIsNewcomer] = useState(true);
+
+  useEffect(() => {
+    if (loading) return;
+    if (hasProfile && !next) {
+      router.replace("/profile");
+      return;
+    }
+    if (user) {
+      const clerkName =
+        clerkLoaded && clerkUser ? clerkDisplayName(clerkUser) : "";
+      setName(resolveDisplayName(user.name, hasProfile, clerkName));
+      setBio(user.bio ?? "");
+      setIsNewcomer(user.isNewcomer);
+    }
+  }, [loading, hasProfile, next, user, clerkUser, clerkLoaded, router]);
+
+  if (loading || (hasProfile && !next)) {
+    return (
+      <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Card style={{ maxWidth: 480, width: "100%" }}>
+          <p style={{ color: "var(--ink-soft)" }}>Loading…</p>
+        </Card>
+      </main>
+    );
+  }
 
   function continueToQuiz(e: React.FormEvent) {
     e.preventDefault();

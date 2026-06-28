@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import { getOrCreateUser } from "@/lib/current-user";
+import { embedProfile } from "@/lib/embeddings";
 import { db } from "@/db/client";
-import { groupMembers, preferences, profiles, surveys } from "@/db/schema";
-import { embedText, profileToText } from "@/lib/embeddings";
+import { groupMembers, preferences, profiles, surveys, users } from "@/db/schema";
+import { enforceRateLimit, internalError, isUniqueViolation, parseBody } from "@/lib/api-helpers";
+import { surveyPostSchema } from "@/lib/validators";
 
 function extractSignals(text: string): { likes: string[]; dislikes: string[] } {
   const likes: string[] = [];
@@ -18,54 +20,73 @@ function extractSignals(text: string): { likes: string[]; dislikes: string[] } {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const user = await getOrCreateUser();
-  if (!user) return NextResponse.json({ error: "unauth" }, { status: 401 });
+  try {
+    const user = await getOrCreateUser();
+    if (!user) return NextResponse.json({ error: "unauth" }, { status: 401 });
 
-  const body = (await req.json()) as {
-    groupId?: string;
-    vibeScore?: number;
-    openText?: string;
-  };
+    const parsed = await parseBody(req, surveyPostSchema);
+    if (!parsed.success) return parsed.response;
 
-  if (!body.groupId || body.vibeScore == null) {
-    return NextResponse.json({ error: "groupId and vibeScore required" }, { status: 400 });
+    const limited = await enforceRateLimit("survey", user.id, parsed.data.groupId);
+    if (limited) return limited;
+
+    const { groupId, vibeScore, openText } = parsed.data;
+
+    const member = await db
+      .select()
+      .from(groupMembers)
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)))
+      .limit(1);
+    if (!member[0]) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+    try {
+      await db.insert(surveys).values({
+        groupId,
+        userId: user.id,
+        vibeScore,
+        openText: openText ?? null,
+      });
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        return NextResponse.json({ error: "already_submitted" }, { status: 409 });
+      }
+      throw err;
+    }
+
+    const [prefBefore] = await db
+      .select()
+      .from(preferences)
+      .where(eq(preferences.userId, user.id));
+
+    let likes = prefBefore?.likes ?? [];
+    if (openText) {
+      const signals = extractSignals(openText);
+      likes = [...likes, ...signals.likes].slice(-20);
+      const dislikes = [...(prefBefore?.dislikes ?? []), ...signals.dislikes].slice(-20);
+      await db
+        .insert(preferences)
+        .values({ userId: user.id, likes, dislikes })
+        .onConflictDoUpdate({ target: preferences.userId, set: { likes, dislikes } });
+    }
+
+    let embedded = false;
+    const [row] = await db
+      .select({ answers: profiles.answers, bio: users.bio })
+      .from(profiles)
+      .innerJoin(users, eq(users.id, profiles.userId))
+      .where(eq(profiles.userId, user.id))
+      .limit(1);
+
+    if (row?.answers) {
+      const embedding = await embedProfile(row.answers, row.bio, likes);
+      if (embedding) {
+        await db.update(profiles).set({ embedding }).where(eq(profiles.userId, user.id));
+        embedded = true;
+      }
+    }
+
+    return NextResponse.json({ ok: true, embedded });
+  } catch (err) {
+    return internalError("survey", err);
   }
-
-  const member = await db
-    .select()
-    .from(groupMembers)
-    .where(and(eq(groupMembers.groupId, body.groupId), eq(groupMembers.userId, user.id)))
-    .limit(1);
-  if (!member[0]) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-
-  await db.insert(surveys).values({
-    groupId: body.groupId,
-    userId: user.id,
-    vibeScore: body.vibeScore,
-    openText: body.openText ?? null,
-  });
-
-  if (body.openText) {
-    const signals = extractSignals(body.openText);
-    const [pref] = await db.select().from(preferences).where(eq(preferences.userId, user.id));
-    const likes = [...(pref?.likes ?? []), ...signals.likes].slice(-20);
-    const dislikes = [...(pref?.dislikes ?? []), ...signals.dislikes].slice(-20);
-    await db
-      .insert(preferences)
-      .values({ userId: user.id, likes, dislikes })
-      .onConflictDoUpdate({ target: preferences.userId, set: { likes, dislikes } });
-  }
-
-  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, user.id));
-  if (profile) {
-    const enrichedBio = [user.bio, body.openText].filter(Boolean).join(" — ");
-    const text = profileToText(profile.answers, enrichedBio);
-    const embedding = await embedText(text);
-    await db
-      .update(profiles)
-      .set({ embedding })
-      .where(eq(profiles.userId, user.id));
-  }
-
-  return NextResponse.json({ ok: true });
 }

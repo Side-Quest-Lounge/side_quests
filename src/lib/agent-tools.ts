@@ -1,3 +1,4 @@
+/** Deterministic agent tools: venue booking, reveal JSON helpers, start times. */
 export type Venue = {
   id: string;
   name: string;

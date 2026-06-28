@@ -8,7 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:aws": "tsx scripts/check-aws.ts",
+    "db:migrate": "tsx scripts/apply-schema.ts",
+    "embed:user": "tsx scripts/embed-user.ts",
+    "inspect:db": "tsx scripts/inspect-db.ts",
+    "demo:match": "tsx scripts/demo-match.ts",
+    "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",
@@ -33,6 +39,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.9"
   }

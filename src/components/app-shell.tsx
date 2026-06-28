@@ -18,9 +18,9 @@ type NavItem = {
 };
 
 const nav: NavItem[] = [
-  { href: "/home", label: "Home", icon: IconHome, match: ["/finding", "/group", "/survey"], tab: true },
+  { href: "/home", label: "Home", icon: IconHome, match: ["/finding", "/group", "/survey", "/profile"], tab: true },
   { href: "/explore", label: "Explore", icon: IconCompass, tab: true },
-  { href: chatPath(), label: "Chat", icon: IconChat, match: [`/chat/${DEMO_GROUP_ID}`], tab: true },
+  { href: chatPath(), label: "Chat", icon: IconChat, match: ["/chat"], tab: true },
   { href: "/quests", label: "Quests", icon: IconMap },
 ];
 
@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <Link href="/onboarding" className="app-user-chip">
+        <Link href="/profile" className="app-user-chip">
           <DisplayName>
             {(name) => (
               <>
@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span aria-hidden className="app-bell">
             <IconBell />
           </span>
-          <Link href="/onboarding" aria-label="Edit profile">
+          <Link href="/profile" aria-label="Edit profile">
             <DisplayName>{(name) => <Avatar name={name} size={34} />}</DisplayName>
           </Link>
         </header>

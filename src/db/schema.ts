@@ -1,4 +1,10 @@
-import { pgTable, text, timestamp, integer, real, jsonb, uuid, boolean, customType } from "drizzle-orm/pg-core";
+/**
+ * Drizzle schema for Side Quest.
+ *
+ * Core flow: users + profiles (embeddings) → events → groups + group_members
+ * → messages / surveys. subscription_status on users gates paid features.
+ */
+import { pgTable, text, timestamp, integer, real, jsonb, uuid, boolean, customType, uniqueIndex } from "drizzle-orm/pg-core";
 
 const vector1024 = customType<{ data: number[]; driverData: string }>({
   dataType: () => "vector(1024)",
@@ -52,11 +58,17 @@ export const groups = pgTable("groups", {
   agentRationale: text("agent_rationale"),
 });
 
-export const groupMembers = pgTable("group_members", {
-  groupId: uuid("group_id").notNull().references(() => groups.id),
-  userId: text("user_id").notNull().references(() => users.id),
-  matchScore: real("match_score").notNull().default(0),
-});
+export const groupMembers = pgTable(
+  "group_members",
+  {
+    groupId: uuid("group_id").notNull().references(() => groups.id),
+    userId: text("user_id").notNull().references(() => users.id),
+    matchScore: real("match_score").notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex("group_members_group_user_unique").on(table.groupId, table.userId),
+  ],
+);
 
 export const messages = pgTable("messages", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -66,13 +78,19 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const surveys = pgTable("surveys", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  groupId: uuid("group_id").notNull().references(() => groups.id),
-  userId: text("user_id").notNull().references(() => users.id),
-  vibeScore: integer("vibe_score").notNull(),
-  openText: text("open_text"),
-});
+export const surveys = pgTable(
+  "surveys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    groupId: uuid("group_id").notNull().references(() => groups.id),
+    userId: text("user_id").notNull().references(() => users.id),
+    vibeScore: integer("vibe_score").notNull(),
+    openText: text("open_text"),
+  },
+  (table) => [
+    uniqueIndex("surveys_group_user_unique").on(table.groupId, table.userId),
+  ],
+);
 
 export const agentTraces = pgTable("agent_traces", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -81,4 +99,11 @@ export const agentTraces = pgTable("agent_traces", {
   args: jsonb("args"),
   result: jsonb("result"),
   at: timestamp("at").notNull().defaultNow(),
+});
+
+/** Fixed-window counters for API rate limiting (shared across serverless instances). */
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(1),
+  windowStart: timestamp("window_start").notNull().defaultNow(),
 });

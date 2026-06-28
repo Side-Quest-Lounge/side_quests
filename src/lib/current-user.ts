@@ -1,3 +1,7 @@
+/**
+ * Clerk user → Aurora `users` row. Creates a stub row on first API hit.
+ * Also provides admin check and group membership guard for API routes.
+ */
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
@@ -10,7 +14,7 @@ export async function getOrCreateUser() {
   if (existing[0]) return existing[0];
   const cu = await currentUser();
   const row = { id: userId, name: cu?.firstName ?? "Friend", city: "Auckland" };
-  await db.insert(users).values(row);
+  await db.insert(users).values(row).onConflictDoNothing();
   return (await db.select().from(users).where(eq(users.id, userId)))[0];
 }
 

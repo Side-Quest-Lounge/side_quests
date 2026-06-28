@@ -4,9 +4,11 @@ Weekly activity-based friend matching for Auckland newcomers. An AI concierge ma
 
 [Hackathon — Building Agents for Real-World Challenges](https://xprize.devpost.com/)
 
+**New to the codebase?** Start with [docs/MAINTAINER.md](docs/MAINTAINER.md).
+
 ## Stack
 
-- **Next.js 15** (App Router) on Vercel
+- **Next.js 16** (App Router) on Vercel
 - **Aurora PostgreSQL Serverless v2** + pgvector via RDS Data API
 - **Clerk** auth · **Stripe** subscriptions (test mode)
 - **Bedrock Titan** embeddings · **Claude** concierge (Vercel AI SDK)
@@ -18,7 +20,7 @@ cp .env.example .env.local
 # Fill in Aurora, Clerk, Stripe, Anthropic, AWS credentials
 
 npm install
-npx dotenv -e .env.local -- drizzle-kit push   # apply schema
+npm run db:migrate
 npm run dev
 ```
 
@@ -29,36 +31,33 @@ npm run dev
 | `npm run dev` | Start dev server |
 | `npm run build` | Production build |
 | `npm test` | Run Vitest unit tests |
-| `npm run seed` | Seed synthetic Auckland users (requires Task 8 seed script) |
+| `npm run db:migrate` | Apply schema to Aurora |
+| `npm run seed` | Seed ~40 synthetic users + open event (Bedrock) |
+| `npm run check:aws` | Smoke-test Aurora + Bedrock env |
 
-## Golden path (demo)
+## Golden path (real auth)
 
-1. Sign up at `/sign-up` (Clerk)
-2. Complete onboarding + quiz → profile embedding stored
-3. `/finding` → click **Run matching (demo)**
-4. `/group/[id]` → see members, rationale, icebreakers, venue
-5. **Confirm my seat** → Stripe test card `4242 4242 4242 4242`
-6. `/chat/[id]` → agent welcome + icebreakers
-7. `/survey/[id]` → post-event feedback re-tunes next match
-8. `/admin` + `/admin/agents` → matching + agent trace views
+1. Sign up → onboarding → quiz (stores embedding)
+2. `/finding` → **Find my party** → match + reveal
+3. `/group/[id]` → confirm seat (Stripe test card `4242…`)
+4. `/chat/[id]` → party chat
+5. `/survey/[id]` → feedback updates embedding
 
-## Stripe webhook (local)
-
-```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhook
-```
+**Demo / judges:** set `NEXT_PUBLIC_DEMO_MODE=1` — no sign-in, mock data. See [docs/MAINTAINER.md](docs/MAINTAINER.md).
 
 ## Deploy (Vercel)
 
 1. Push to GitHub and import to Vercel
 2. Set all env vars from `.env.example`
-3. Co-locate function region with Aurora region
-4. Add Stripe webhook endpoint for production URL
+3. Set function region near Aurora (e.g. `ap-southeast-2` / Sydney)
+4. Run `npm run db:migrate` and `npm run seed` against production Aurora
+5. Verify `GET /api/health` on your deploy URL
+6. Add Stripe webhook → `https://your-app.vercel.app/api/stripe/webhook`
 
 See [docs/architecture-diagram.md](docs/architecture-diagram.md) for system architecture.
 
 ## Hackathon submission notes
 
-- **AWS DB:** Aurora PostgreSQL Serverless v2 with Data API + pgvector (not Neon/Vercel Postgres)
+- **AWS DB:** Aurora PostgreSQL Serverless v2 with Data API + pgvector
 - **Embeddings:** Bedrock `amazon.titan-embed-text-v2:0` (1024-dim)
 - Capture AWS console screenshot of Aurora cluster for submission
