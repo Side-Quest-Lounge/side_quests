@@ -6,6 +6,8 @@
 // Toggle with NEXT_PUBLIC_DEMO_MODE=1 (set in .env.local). Safe to import on client.
 export const DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
 
+export { DEMO_GUEST_NAME } from "@/lib/display-name";
+
 export const DEMO_GROUP_ID = "demo";
 
 export type DemoMember = {
@@ -45,7 +47,7 @@ export const demoGroup: DemoGroup = {
   startsAt: nextSaturdayAt10().toISOString(),
   subscriptionStatus: "trial",
   members: [
-    { userId: "u-you", name: "Alex", bio: "Just moved from Wellington", matchScore: 1, isYou: true },
+    { userId: "u-you", name: "Guest", bio: "Exploring Side Quest in demo mode", matchScore: 1, isYou: true },
     { userId: "u-maia", name: "Maia T", bio: "Designer, keen tramper", matchScore: 0.92, isYou: false },
     { userId: "u-liam", name: "Liam O", bio: "New from Dublin, loves a flat white", matchScore: 0.88, isYou: false },
     { userId: "u-priya", name: "Priya S", bio: "Data scientist, board-game nerd", matchScore: 0.85, isYou: false },
@@ -116,9 +118,9 @@ export const demoTraces = [
 ];
 
 export const demoUser = {
-  name: "Alex",
-  blurb: "New to Auckland · moved from Wellington",
-  joinedAt: "Joined June 2026",
+  name: "Guest",
+  blurb: "Exploring Side Quest in demo mode",
+  joinedAt: "Demo guest",
 };
 
 export type DemoOpenEvent = {

@@ -4,10 +4,10 @@ import { SignUp, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ClerkAuthShell } from "@/components/clerk-auth-shell";
+import { DemoGuestEntry } from "@/components/demo-auth-form";
 import { DEMO } from "@/lib/demo";
-import { DemoSignUp } from "@/components/demo-auth-form";
 
-function SignUpClerk() {
+export default function SignUpPage() {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
 
@@ -23,11 +23,12 @@ function SignUpClerk() {
         signInUrl="/sign-in"
         fallbackRedirectUrl="/onboarding"
       />
+      {DEMO && (
+        <DemoGuestEntry
+          destination="/home"
+          buttonLabel="Try demo first, sign up later →"
+        />
+      )}
     </ClerkAuthShell>
   );
-}
-
-export default function SignUpPage() {
-  if (DEMO) return <DemoSignUp />;
-  return <SignUpClerk />;
 }
