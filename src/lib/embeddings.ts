@@ -1,11 +1,17 @@
 /**
  * Bedrock Titan embeddings (1024-dim) for profiles.
  * `tryEmbedText` / `embedProfile` swallow errors so quiz save still succeeds without Bedrock.
+ *
+ * When Bedrock throttles (common on new accounts in ap-southeast-2), seed can fall back to
+ * `deterministicEmbed()` — good enough for matching demos; not semantic-quality Titan vectors.
  */
+import { createHash } from "crypto";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
 const region = process.env.BEDROCK_REGION ?? process.env.AWS_REGION ?? "ap-southeast-2";
 const client = new BedrockRuntimeClient({ region });
+
+const EMBED_DIM = 1024;
 
 export function profileToText(answers: Record<string, number | string>, bio?: string): string {
   const parts = Object.entries(answers).map(([k, v]) => `${k}: ${v}`);
@@ -51,8 +57,20 @@ export async function embedText(text: string): Promise<number[]> {
   }
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** L2-normalized pseudo-embedding from text — for seed/dev when Bedrock RPM quota is exhausted. */
+export function deterministicEmbed(text: string, dims = EMBED_DIM): number[] {
+  const vec = new Float32Array(dims);
+  const blocks = Math.ceil(dims / 32);
+  for (let b = 0; b < blocks; b++) {
+    const hash = createHash("sha256").update(`${text}\0${b}`).digest();
+    for (let i = 0; i < 32 && b * 32 + i < dims; i++) {
+      vec[b * 32 + i] = hash[i] / 127.5 - 1;
+    }
+  }
+  let norm = 0;
+  for (let i = 0; i < dims; i++) norm += vec[i] * vec[i];
+  norm = Math.sqrt(norm) || 1;
+  return Array.from(vec, (x) => x / norm);
 }
 
 function isRetryableBedrockError(err: unknown): boolean {
@@ -73,6 +91,14 @@ function isRetryableBedrockError(err: unknown): boolean {
     current = current instanceof Error ? current.cause : undefined;
   }
   return false;
+}
+
+export function isBedrockThrottleError(err: unknown): boolean {
+  return isRetryableBedrockError(err);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /** Call Bedrock with exponential backoff — use for batch jobs like seeding. */
@@ -97,6 +123,23 @@ export async function embedTextWithRetry(
   throw new EmbeddingError("Bedrock embedding failed after retries");
 }
 
+/** Bedrock first; on throttle, optional deterministic fallback for dev/seed. */
+export async function embedTextWithFallback(
+  text: string,
+  opts: { allowDeterministic?: boolean; maxAttempts?: number; baseDelayMs?: number } = {},
+): Promise<{ embedding: number[]; source: "bedrock" | "deterministic" }> {
+  const allowDeterministic = opts.allowDeterministic ?? process.env.ALLOW_DETERMINISTIC_EMBEDDINGS === "1";
+  try {
+    const embedding = await embedTextWithRetry(text, opts);
+    return { embedding, source: "bedrock" };
+  } catch (err) {
+    if (allowDeterministic && isRetryableBedrockError(err)) {
+      return { embedding: deterministicEmbed(text), source: "deterministic" };
+    }
+    throw err;
+  }
+}
+
 /** Returns null instead of throwing — use when profile should save even without an embedding. */
 export async function tryEmbedText(text: string): Promise<number[] | null> {
   try {
@@ -117,7 +160,12 @@ export async function embedProfile(
   if (likes?.length) text += "; likes: " + likes.join(", ");
   try {
     // Quiz save UI already waits — retry throttling for up to ~30s before giving up.
-    return await embedTextWithRetry(text, { maxAttempts: 5, baseDelayMs: 3000 });
+    const { embedding } = await embedTextWithFallback(text, {
+      allowDeterministic: process.env.ALLOW_DETERMINISTIC_EMBEDDINGS === "1",
+      maxAttempts: 5,
+      baseDelayMs: 3000,
+    });
+    return embedding;
   } catch (err) {
     console.error("[embeddings]", err);
     return null;

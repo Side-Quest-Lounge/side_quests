@@ -4,7 +4,8 @@
  * Guardrails: one group per user per open event; exclude already-assigned users;
  * idempotent on retry / race (unique constraint on group_members).
  */
-import { sql } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
+import { parseEmbedding, parseRdsRows } from "@/lib/rds-rows";
 import { db } from "@/db/client";
 import { groups, groupMembers } from "@/db/schema";
 import { isUniqueViolation } from "@/lib/api-helpers";
@@ -49,7 +50,8 @@ export function filterAvailableCandidates(
 export function toVec(v: number[]): string {
   if (!v.every((x) => typeof x === "number" && isFinite(x)))
     throw new Error("toVec: non-finite value in embedding");
-  return `'[${v.join(",")}]'::vector`;
+  const body = v.map((x) => x.toFixed(8)).join(",");
+  return `'[${body}]'::vector`;
 }
 
 function codedError(message: string, code: string): Error {
@@ -62,30 +64,28 @@ async function findOpenEventId(): Promise<string> {
   const eventRows = await db.execute(
     sql`SELECT id FROM events WHERE status = 'open' ORDER BY starts_at ASC LIMIT 1`,
   );
-  const eventId = (eventRows as unknown as Array<{ id: string }>)[0]?.id;
+  const eventId = parseRdsRows<{ id: string }>(eventRows, ["id"])[0]?.id;
   if (!eventId) throw codedError("No open event found", "no_open_event");
   return eventId;
 }
 
 async function findExistingGroupId(userId: string, eventId: string): Promise<string | null> {
-  const rows = await db.execute(sql`
-    SELECT g.id
-    FROM groups g
-    INNER JOIN group_members gm ON gm.group_id = g.id
-    WHERE gm.user_id = ${userId} AND g.event_id = ${eventId}
-    LIMIT 1
-  `);
-  return (rows as unknown as Array<{ id: string }>)[0]?.id ?? null;
+  const rows = await db
+    .select({ id: groups.id })
+    .from(groups)
+    .innerJoin(groupMembers, eq(groupMembers.groupId, groups.id))
+    .where(and(eq(groupMembers.userId, userId), eq(groups.eventId, eventId)))
+    .limit(1);
+  return rows[0]?.id ?? null;
 }
 
 async function findAssignedUserIds(eventId: string): Promise<Set<string>> {
-  const rows = await db.execute(sql`
-    SELECT gm.user_id
-    FROM group_members gm
-    INNER JOIN groups g ON g.id = gm.group_id
-    WHERE g.event_id = ${eventId}
-  `);
-  return new Set((rows as unknown as Array<{ user_id: string }>).map((r) => r.user_id));
+  const rows = await db
+    .select({ userId: groupMembers.userId })
+    .from(groupMembers)
+    .innerJoin(groups, eq(groups.id, groupMembers.groupId))
+    .where(eq(groups.eventId, eventId));
+  return new Set(rows.map((r) => r.userId));
 }
 
 /**
@@ -105,32 +105,32 @@ export async function runMatchingRound(userId: string): Promise<MatchResult> {
   const selfRows = await db.execute(
     sql`SELECT embedding FROM profiles WHERE user_id = ${userId} LIMIT 1`,
   );
-  const embedding = (selfRows as unknown as Array<{ embedding: number[] }>)[0]?.embedding;
+  const embedding = parseEmbedding(
+    parseRdsRows<{ embedding: unknown }>(selfRows, ["embedding"])[0]?.embedding,
+  );
   if (!embedding) {
     throw codedError(`No embedding found for user ${userId}`, "no_embedding");
   }
 
   const assigned = await findAssignedUserIds(eventId);
-  const vecLiteral = toVec(embedding);
 
   const knnRows = await db.execute(sql`
-    SELECT p.user_id, 1 - (p.embedding <=> ${sql.raw(vecLiteral)}) AS score
+    SELECT p.user_id, 1 - (p.embedding <=> anchor.embedding) AS score
     FROM profiles p
+    CROSS JOIN (
+      SELECT embedding FROM profiles WHERE user_id = ${userId} LIMIT 1
+    ) anchor
     WHERE p.user_id <> ${userId}
       AND p.embedding IS NOT NULL
-      AND p.user_id NOT IN (
-        SELECT gm.user_id
-        FROM group_members gm
-        INNER JOIN groups g ON g.id = gm.group_id
-        WHERE g.event_id = ${eventId}
-      )
-    ORDER BY p.embedding <=> ${sql.raw(vecLiteral)}
+      AND anchor.embedding IS NOT NULL
+    ORDER BY p.embedding <=> anchor.embedding
     LIMIT 30
   `);
 
-  const knnCandidates = (knnRows as unknown as Array<{ user_id: string; score: number }>).map(
-    (r) => ({ userId: r.user_id, score: r.score }),
-  );
+  const knnCandidates = parseRdsRows<{ user_id: string; score: number | string }>(knnRows, [
+    "user_id",
+    "score",
+  ]).map((r) => ({ userId: r.user_id, score: Number(r.score) }));
   const candidates = filterAvailableCandidates(knnCandidates, assigned);
 
   if (candidates.length < GROUP_SIZE - 1) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import { getOrCreateUser } from "@/lib/current-user";
 import { embedProfile } from "@/lib/embeddings";
+import { setProfileEmbedding } from "@/lib/profile-embedding";
 import { db } from "@/db/client";
 import { groupMembers, preferences, profiles, surveys, users } from "@/db/schema";
 import { enforceRateLimit, internalError, isUniqueViolation, parseBody } from "@/lib/api-helpers";
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (row?.answers) {
       const embedding = await embedProfile(row.answers, row.bio, likes);
       if (embedding) {
-        await db.update(profiles).set({ embedding }).where(eq(profiles.userId, user.id));
+        await setProfileEmbedding(user.id, embedding);
         embedded = true;
       }
     }

@@ -7,28 +7,23 @@ import { sql } from "drizzle-orm";
 import { db } from "../src/db/client";
 import { users, venues, events, groups, groupMembers } from "../src/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { parseRdsCount, parseRdsRows } from "../src/lib/rds-rows";
 
 function rows<T extends string>(
   result: unknown,
   keys: T[],
 ): Array<Record<T, string | number | boolean | null>> {
-  const records = (result as { records?: Array<Array<{ stringValue?: string; longValue?: number; booleanValue?: boolean; isNull?: boolean }>> }).records ?? [];
-  return records.map((row) => {
-    const obj = {} as Record<T, string | number | boolean | null>;
-    keys.forEach((key, i) => {
-      const f = row[i];
-      if (!f || f.isNull) obj[key] = null;
-      else obj[key] = f.stringValue ?? f.longValue ?? f.booleanValue ?? null;
-    });
-    return obj;
-  });
+  return parseRdsRows(
+    result,
+    keys as (keyof Record<T, string | number | boolean | null> & string)[],
+  ) as Array<Record<T, string | number | boolean | null>>;
 }
 
 async function countEmbedded(): Promise<number> {
   const rows = await db.execute(
     sql`SELECT count(*)::int AS n FROM profiles WHERE embedding IS NOT NULL`,
   );
-  return (rows as unknown as Array<{ n: number }>)[0]?.n ?? 0;
+  return parseRdsCount(rows, "n");
 }
 
 async function main(): Promise<void> {

@@ -203,7 +203,12 @@ async function checkBedrock(): Promise<CheckResult> {
     if (name === "ThrottlingException") {
       return warn(
         "Bedrock Titan embed",
-        "Rate limited — IAM looks OK. Wait 30–60s and retry, or run check:aws again.",
+        [
+          `Rate limited in ${region} — this is an account RPM quota, not a short cooldown.`,
+          "Waiting 30 min usually won't help on new accounts.",
+          "Fix: AWS Console → Service Quotas → Bedrock → raise Titan embed RPM.",
+          "Unblock seed now: SEED_DETERMINISTIC=1 npm run seed",
+        ].join(" "),
       );
     }
     return fail(
