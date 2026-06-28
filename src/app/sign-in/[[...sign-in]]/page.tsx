@@ -1,22 +1,19 @@
 "use client";
 
-import { SignIn } from "@clerk/nextjs";
+import { SignIn, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ClerkAuthShell } from "@/components/clerk-auth-shell";
 import { DEMO } from "@/lib/demo";
 import { DemoSignIn } from "@/components/demo-auth-form";
-import { useAuth } from "@clerk/nextjs";
 
-export default function SignInPage() {
+function SignInClerk() {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
 
   useEffect(() => {
     if (isLoaded && isSignedIn) router.replace("/after-auth");
   }, [isLoaded, isSignedIn, router]);
-
-  if (DEMO) return <DemoSignIn />;
 
   return (
     <ClerkAuthShell>
@@ -28,4 +25,9 @@ export default function SignInPage() {
       />
     </ClerkAuthShell>
   );
+}
+
+export default function SignInPage() {
+  if (DEMO) return <DemoSignIn />;
+  return <SignInClerk />;
 }
