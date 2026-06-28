@@ -1,8 +1,27 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { DEMO, DEMO_GROUP_ID } from "@/lib/demo";
+import { useMeGroup } from "@/lib/api/use-me-group";
+import { chatPath } from "@/lib/paths";
 
 export default function ChatIndex() {
-  // In demo there's a single party; real mode would resolve the user's current group.
-  if (DEMO) redirect(`/chat/${DEMO_GROUP_ID}`);
-  redirect("/home");
+  const router = useRouter();
+  const { loading, groupId } = useMeGroup();
+
+  useEffect(() => {
+    if (DEMO) {
+      router.replace(chatPath(DEMO_GROUP_ID));
+      return;
+    }
+    if (loading) return;
+    if (groupId) {
+      router.replace(chatPath(groupId));
+      return;
+    }
+    router.replace("/home");
+  }, [loading, groupId, router]);
+
+  return null;
 }

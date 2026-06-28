@@ -1,3 +1,7 @@
+/**
+ * Concierge agent: venue pick + Claude reveal (rationale + icebreakers).
+ * Idempotent — skips LLM if groups.agent_rationale already stored.
+ */
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateObject } from "ai";
 import { eq } from "drizzle-orm";
@@ -6,6 +10,7 @@ import { db } from "@/db/client";
 import { agentTraces, events, groups, groupMembers, users, venues } from "@/db/schema";
 import {
   bookVenue,
+  parseRevealPayload,
   pickStartTime,
   serializeRevealPayload,
   type Venue,
@@ -40,6 +45,24 @@ const revealSchema = z.object({
 export async function generateReveal(groupId: string): Promise<RevealResult> {
   const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
   if (!group) throw new Error("Group not found");
+
+  const cached = parseRevealPayload(group.agentRationale);
+  if (cached.rationale) {
+    const [event] = group.eventId
+      ? await db.select().from(events).where(eq(events.id, group.eventId))
+      : [undefined];
+    let venue: Venue = { id: "", name: "Side Quest venue", activityType: "activity", address: "Auckland", capacity: 6 };
+    if (event?.venueId) {
+      const [v] = await db.select().from(venues).where(eq(venues.id, event.venueId));
+      if (v) venue = { id: v.id, name: v.name, activityType: v.activityType, address: v.address, capacity: v.capacity };
+    }
+    return {
+      rationale: cached.rationale,
+      icebreakers: cached.icebreakers,
+      venue,
+      startsAt: event?.startsAt ?? pickStartTime(event?.weekOf ?? new Date().toISOString()),
+    };
+  }
 
   const members = await db
     .select({

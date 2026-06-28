@@ -1,9 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { Button, Card } from "@/components/ui";
+import { useMeGroup } from "@/lib/api/use-me-group";
 import { DEMO, DEMO_GROUP_ID, demoMessages } from "@/lib/demo";
+import { canViewFullQuest } from "@/lib/seat-access";
 
 type ChatMessage = {
   id: string;
@@ -13,13 +16,27 @@ type ChatMessage = {
 };
 
 export default function ChatPage() {
+  const router = useRouter();
   const { id: groupId } = useParams<{ id: string }>();
+  const { userId } = useAuth();
+  const { group } = useMeGroup();
+  const namesById = useMemo(
+    () => Object.fromEntries(group?.members.map((m) => [m.userId, m.name]) ?? []),
+    [group],
+  );
   const isDemoGroup = DEMO || groupId === DEMO_GROUP_ID;
   const [messages, setMessages] = useState<ChatMessage[]>(isDemoGroup ? demoMessages : []);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const lastTs = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isDemoGroup || !group) return;
+    if (group.id === groupId && !canViewFullQuest(group.subscriptionStatus)) {
+      router.replace(`/group/${group.id}`);
+    }
+  }, [group, groupId, isDemoGroup, router]);
 
   const fetchMessages = useCallback(async () => {
     const qs = lastTs.current ? `?since=${encodeURIComponent(lastTs.current)}` : "";
@@ -107,9 +124,13 @@ export default function ChatPage() {
         }}
       >
         {messages.map((m) => {
-          const isYou = m.author === "you";
+          const isYou = m.author === "you" || (!!userId && m.author === userId);
           const isAgent = m.author === "agent";
-          const label = isAgent ? "Side Quest concierge" : isYou ? "You" : m.author;
+          const label = isAgent
+            ? "Side Quest concierge"
+            : isYou
+              ? "You"
+              : (namesById[m.author] ?? "Party member");
           return (
             <div
               key={m.id}

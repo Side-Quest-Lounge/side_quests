@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { buildGroups, toVec } from "./matching";
+import { buildGroups, filterAvailableCandidates, toVec } from "./matching";
 
 test("builds a group anchored on the seed user, capped at size", () => {
   const cands = Array.from({ length: 20 }, (_, i) => ({ userId: `u${i}`, score: 1 - i * 0.01 }));
@@ -20,4 +20,14 @@ test("anchor is first even when not the top scorer", () => {
 
 test("toVec formats a pgvector literal", () => {
   expect(toVec([0.1, 0.2])).toBe("'[0.1,0.2]'::vector");
+});
+
+test("filterAvailableCandidates removes users already in a group", () => {
+  const cands = [
+    { userId: "u1", score: 0.9 },
+    { userId: "u2", score: 0.8 },
+    { userId: "u3", score: 0.7 },
+  ];
+  const filtered = filterAvailableCandidates(cands, new Set(["u2"]));
+  expect(filtered.map((c) => c.userId)).toEqual(["u1", "u3"]);
 });

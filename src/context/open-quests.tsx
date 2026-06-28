@@ -48,8 +48,11 @@ function getSnapshot(): Record<string, boolean> {
   return joinedCache;
 }
 
+/** Stable empty snapshot for SSR — must not allocate a new object per call. */
+const SERVER_JOINED_SNAPSHOT: Record<string, boolean> = {};
+
 function getServerSnapshot(): Record<string, boolean> {
-  return {};
+  return SERVER_JOINED_SNAPSHOT;
 }
 
 type OpenQuestsContextValue = {

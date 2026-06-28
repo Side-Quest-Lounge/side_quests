@@ -1,3 +1,7 @@
+/**
+ * Demo mode mock data. Active when NEXT_PUBLIC_DEMO_MODE=1.
+ * Never import server secrets here — safe for client components.
+ */
 // Demo mode: render the whole app with mock data, no Clerk auth and no database.
 // Toggle with NEXT_PUBLIC_DEMO_MODE=1 (set in .env.local). Safe to import on client.
 export const DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
@@ -41,7 +45,7 @@ export const demoGroup: DemoGroup = {
   startsAt: nextSaturdayAt10().toISOString(),
   subscriptionStatus: "trial",
   members: [
-    { userId: "u-you", name: "You", bio: "Just moved from Wellington", matchScore: 1, isYou: true },
+    { userId: "u-you", name: "Alex", bio: "Just moved from Wellington", matchScore: 1, isYou: true },
     { userId: "u-maia", name: "Maia T", bio: "Designer, keen tramper", matchScore: 0.92, isYou: false },
     { userId: "u-liam", name: "Liam O", bio: "New from Dublin, loves a flat white", matchScore: 0.88, isYou: false },
     { userId: "u-priya", name: "Priya S", bio: "Data scientist, board-game nerd", matchScore: 0.85, isYou: false },
