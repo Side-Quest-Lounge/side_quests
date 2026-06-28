@@ -1,11 +1,10 @@
 /**
- * Concierge agent: venue pick + Claude reveal (rationale + icebreakers).
- * Idempotent — skips LLM if groups.agent_rationale already stored.
+ * Concierge agent: venue pick + template group reveal (rationale + icebreakers).
+ * Idempotent — skips if groups.agent_rationale already stored.
+ *
+ * Future: Claude via Vercel AI SDK for live chat concierge (nudges, contextual replies).
  */
-import { anthropic } from "@ai-sdk/anthropic";
-import { generateObject } from "ai";
 import { eq } from "drizzle-orm";
-import { z } from "zod";
 import { db } from "@/db/client";
 import { agentTraces, events, groups, groupMembers, users, venues } from "@/db/schema";
 import {
@@ -27,20 +26,23 @@ async function recordTrace(
   userId: string | null,
   tool: string,
   args: unknown,
-  result: unknown
+  result: unknown,
 ): Promise<void> {
   await db.insert(agentTraces).values({ userId, tool, args, result });
 }
 
-const revealSchema = z.object({
-  rationale: z
-    .string()
-    .describe("Warm, plain-language explanation of why these people fit together"),
-  icebreakers: z
-    .array(z.string())
-    .length(3)
-    .describe("Three tailored conversation starters referencing member interests"),
-});
+function buildTemplateReveal(
+  members: Array<{ name: string; bio: string | null; matchScore: number }>,
+  chosen: Venue,
+): { rationale: string; icebreakers: string[] } {
+  const rationale = `You're all newcomers-ish Aucklanders who scored high on vibe overlap — ${members.map((m) => m.name).join(", ")} should click over ${chosen.activityType} at ${chosen.name}.`;
+  const icebreakers = [
+    "What's the best thing you've discovered in Auckland so far?",
+    "What made you say yes to meeting new people this week?",
+    `Ever tried ${chosen.activityType}? What are you hoping to get out of it?`,
+  ];
+  return { rationale, icebreakers };
+}
 
 export async function generateReveal(groupId: string): Promise<RevealResult> {
   const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
@@ -51,7 +53,13 @@ export async function generateReveal(groupId: string): Promise<RevealResult> {
     const [event] = group.eventId
       ? await db.select().from(events).where(eq(events.id, group.eventId))
       : [undefined];
-    let venue: Venue = { id: "", name: "Side Quest venue", activityType: "activity", address: "Auckland", capacity: 6 };
+    let venue: Venue = {
+      id: "",
+      name: "Side Quest venue",
+      activityType: "activity",
+      address: "Auckland",
+      capacity: 6,
+    };
     if (event?.venueId) {
       const [v] = await db.select().from(venues).where(eq(venues.id, event.venueId));
       if (v) venue = { id: v.id, name: v.name, activityType: v.activityType, address: v.address, capacity: v.capacity };
@@ -60,7 +68,7 @@ export async function generateReveal(groupId: string): Promise<RevealResult> {
       rationale: cached.rationale,
       icebreakers: cached.icebreakers,
       venue,
-      startsAt: event?.startsAt ?? pickStartTime(event?.weekOf ?? new Date().toISOString()),
+      startsAt: event?.startsAt ?? pickStartTime(event?.weekOf ?? ""),
     };
   }
 
@@ -91,39 +99,14 @@ export async function generateReveal(groupId: string): Promise<RevealResult> {
   const [event] = group.eventId
     ? await db.select().from(events).where(eq(events.id, group.eventId))
     : [undefined];
-  const startsAt = pickStartTime(event?.weekOf ?? new Date().toISOString());
+  const startsAt = event?.startsAt ?? pickStartTime(event?.weekOf ?? "");
   await recordTrace(null, "pickStartTime", { weekOf: event?.weekOf }, { startsAt: startsAt.toISOString() });
 
-  const memberSummaries = members
-    .map((m) => `${m.name}${m.bio ? ` (${m.bio})` : ""} — match ${Math.round(m.matchScore * 100)}%`)
-    .join("\n");
-
-  let rationale: string;
-  let icebreakers: string[];
-
-  if (process.env.ANTHROPIC_API_KEY) {
-    const { object } = await generateObject({
-      model: anthropic("claude-sonnet-4-20250514"),
-      schema: revealSchema,
-      system: `You are Side Quest's warm AI concierge in Auckland. Explain group picks in plain, friendly language — no jargon. Reference real member details when provided. Keep rationale to 2–3 sentences.`,
-      prompt: `Compose a group reveal for this week's activity (${chosen.name}, ${chosen.activityType}).
-
-Members:
-${memberSummaries}
-
-Write a rationale explaining why they fit, plus exactly 3 icebreaker questions tailored to their interests.`,
-    });
-    rationale = object.rationale;
-    icebreakers = object.icebreakers;
-    await recordTrace(null, "explainPicks", { groupId, memberCount: members.length }, { rationale, icebreakers });
-  } else {
-    rationale = `You're all newcomers-ish Aucklanders who scored high on vibe overlap — ${members.map((m) => m.name).join(", ")} should click over ${chosen.activityType} at ${chosen.name}.`;
-    icebreakers = [
-      "What's the best thing you've discovered in Auckland so far?",
-      "What made you say yes to meeting new people this week?",
-      `Ever tried ${chosen.activityType}? What are you hoping to get out of it?`,
-    ];
-  }
+  const { rationale, icebreakers } = buildTemplateReveal(members, chosen);
+  await recordTrace(null, "explainPicks", { groupId, memberCount: members.length, source: "template" }, {
+    rationale,
+    icebreakers,
+  });
 
   await db
     .update(groups)

@@ -14,6 +14,7 @@ Full social networking is **out of scope** for the hackathon and deferred to V2+
 
 ### Tier A — high signal, low scope
 
+- **Claude live chat concierge** — contextual replies and nudges in party chat (reveal stays template-based)
 - Mutual **"hang again"** after survey → concierge nudges same open quest
 - **Past party roster** on Quests (names from completed groups)
 - **Read-only chat archive** for past groups

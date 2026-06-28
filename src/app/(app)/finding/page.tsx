@@ -60,7 +60,6 @@ export default function FindingPage() {
   }, [router]);
 
   useEffect(() => {
-    if (DEMO) return;
     void checkGroup();
     const interval = setInterval(() => void checkGroup(), 4000);
     return () => clearInterval(interval);
@@ -69,7 +68,8 @@ export default function FindingPage() {
   async function runMatching() {
     if (DEMO) {
       setLoading(true);
-      setStatus("Concierge is composing your reveal…");
+      setError(null);
+      setStatus("Assembling your demo party…");
       setTimeout(() => router.push(`/group/${DEMO_GROUP_ID}`), 1100);
       return;
     }
@@ -142,39 +142,66 @@ export default function FindingPage() {
         <h1 style={{ fontSize: "var(--text-2xl)", margin: "var(--space-3) 0" }}>{status}</h1>
         <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-6)" }}>
           {DEMO
-            ? "The concierge is gathering a small party for one low-key activity. Hang tight — or assemble it now for the demo."
+            ? "The concierge is gathering a small party for one low-key activity. Tap below to see the demo reveal."
             : "We match you into a party of six using pgvector similarity on your vibe quiz answers."}
         </p>
         {error && (
-          <p style={{ color: "var(--ember)", marginBottom: "var(--space-4)", fontWeight: 600 }}>
+          <div
+            role="alert"
+            style={{
+              marginBottom: "var(--space-5)",
+              padding: "var(--space-3) var(--space-4)",
+              borderRadius: "var(--radius-md)",
+              background: "color-mix(in srgb, var(--ember) 10%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--ember) 25%, transparent)",
+              color: "var(--ember)",
+              fontSize: "var(--text-sm)",
+              lineHeight: 1.5,
+              textAlign: "left",
+            }}
+          >
             {error}
-          </p>
+          </div>
         )}
-        {pendingGroupId && !loading && !DEMO ? (
-          <Button variant="primary" onClick={() => void resumeReveal()} disabled={loading} style={{ marginBottom: "var(--space-3)" }}>
-            Complete reveal →
-          </Button>
-        ) : null}
-        <Button variant="primary" onClick={() => void runMatching()} disabled={loading}>
-          {loading
-            ? "Working…"
-            : DEMO
-              ? "Assemble my party (demo)"
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: "var(--space-3)",
+            maxWidth: 320,
+            margin: "0 auto",
+          }}
+        >
+          {pendingGroupId && !loading ? (
+            <Button variant="primary" onClick={() => void resumeReveal()} disabled={loading} style={{ width: "100%" }}>
+              Complete reveal →
+            </Button>
+          ) : null}
+          <Button
+            variant={pendingGroupId && !loading ? "ghost" : "primary"}
+            onClick={() => void runMatching()}
+            disabled={loading}
+            style={{ width: "100%" }}
+          >
+            {loading
+              ? "Working…"
               : pendingGroupId
                 ? "Retry matching"
-                : "Find my party →"}
-        </Button>
-        {!DEMO && (
-          <p style={{ marginTop: "var(--space-4)" }}>
-            <button
-              type="button"
-              onClick={() => router.push("/home")}
-              style={{ background: "none", border: "none", color: "var(--ink-faint)", cursor: "pointer", fontSize: "var(--text-sm)" }}
-            >
-              ← Back to home
-            </button>
-          </p>
-        )}
+                : DEMO
+                  ? "Assemble my party (demo)"
+                  : "Find my party →"}
+          </Button>
+        </div>
+        <p style={{ marginTop: "var(--space-4)" }}>
+          <button
+            type="button"
+            onClick={() => router.push("/home")}
+            style={{ background: "none", border: "none", color: "var(--ink-faint)", cursor: "pointer", fontSize: "var(--text-sm)" }}
+          >
+            ← Back to home
+          </button>
+        </p>
       </Card>
     </div>
   );

@@ -19,6 +19,7 @@ export default function SurveyPage() {
       setTimeout(() => router.push("/home"), 2000);
       return;
     }
+
     setLoading(true);
     const res = await fetch("/api/survey", {
       method: "POST",

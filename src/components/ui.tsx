@@ -23,7 +23,6 @@ const buttonBase: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   gap: "var(--space-2)",
-  border: "none",
   borderRadius: "var(--radius-pill)",
   fontWeight: 700,
   fontSize: "var(--text-base)",
@@ -34,32 +33,37 @@ const buttonBase: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+/** Soft, low-contrast buttons — teal primary, neutral secondary, minimal ghost. */
 const buttonVariants: Record<ButtonVariant, React.CSSProperties> = {
   primary: {
-    background: "var(--coral)",
-    color: "var(--accent-contrast)",
-    boxShadow: "var(--shadow-coral)",
+    background: "var(--success-bg)",
+    color: "var(--aqua-ink)",
+    border: "1px solid rgba(54, 205, 182, 0.35)",
+    boxShadow: "none",
   },
   accent: {
-    background: "var(--sunny)",
-    color: "var(--accent-contrast)",
-    boxShadow: "var(--shadow-sunny)",
+    background: "var(--surface-2-raw)",
+    color: "var(--ink)",
+    border: "1.5px solid var(--border-strong)",
+    boxShadow: "none",
   },
   ghost: {
     background: "transparent",
-    color: "var(--ink)",
-    boxShadow: "inset 0 0 0 2px var(--border-strong)",
+    color: "var(--ink-soft)",
+    border: "1.5px solid var(--border)",
+    boxShadow: "none",
   },
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  function Button({ variant = "primary", style, children, ...props }, ref) {
+  function Button({ variant = "primary", style, className, children, ...props }, ref) {
     const reduce = useReducedMotion();
     return (
       <motion.button
         ref={ref}
+        className={className ? `sq-btn sq-btn--${variant} ${className}` : `sq-btn sq-btn--${variant}`}
         style={{ ...buttonBase, ...buttonVariants[variant], ...style }}
-        whileHover={reduce ? undefined : { scale: 1.04, y: -2 }}
+        whileHover={reduce ? undefined : { scale: 1.02, y: -1 }}
         whileTap={reduce ? undefined : { scale: 0.96 }}
         transition={spring}
         {...props}
@@ -121,9 +125,10 @@ const pillTones: Record<PillTone, React.CSSProperties> = {
   success: { background: "var(--success-bg)", color: "var(--success-fg)" },
 };
 
-export function Pill({ tone = "neutral", style, children, ...props }: PillProps) {
+export function Pill({ tone = "neutral", style, className, children, ...props }: PillProps) {
   return (
     <span
+      className={className}
       style={{
         display: "inline-flex",
         alignItems: "center",

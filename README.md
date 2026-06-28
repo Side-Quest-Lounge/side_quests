@@ -11,13 +11,13 @@ Weekly activity-based friend matching for Auckland newcomers. An AI concierge ma
 - **Next.js 16** (App Router) on Vercel
 - **Aurora PostgreSQL Serverless v2** + pgvector via RDS Data API
 - **Clerk** auth · **Stripe** subscriptions (test mode)
-- **Bedrock Titan** embeddings · **Claude** concierge (Vercel AI SDK)
+- **Bedrock Titan** embeddings (profile matching via pgvector)
 
 ## Local setup
 
 ```bash
 cp .env.example .env.local
-# Fill in Aurora, Clerk, Stripe, Anthropic, AWS credentials
+# Fill in Aurora, Clerk, Stripe, AWS credentials
 
 npm install
 npm run db:migrate
@@ -43,7 +43,7 @@ npm run dev
 4. `/chat/[id]` → party chat
 5. `/survey/[id]` → feedback updates embedding
 
-**Demo / judges:** set `NEXT_PUBLIC_DEMO_MODE=1` — no sign-in, mock data. See [docs/MAINTAINER.md](docs/MAINTAINER.md).
+Judges can **Try demo** on the landing page or **Explore demo as guest →** on sign-in when `NEXT_PUBLIC_DEMO_MODE=1` is set — no account needed. Real sign-up via Clerk still works for the full Aurora flow.
 
 ## Deploy (Vercel)
 
@@ -58,6 +58,10 @@ See [docs/architecture-diagram.md](docs/architecture-diagram.md) for system arch
 
 ## Hackathon submission notes
 
-- **AWS DB:** Aurora PostgreSQL Serverless v2 with Data API + pgvector
-- **Embeddings:** Bedrock `amazon.titan-embed-text-v2:0` (1024-dim)
-- Capture AWS console screenshot of Aurora cluster for submission
+- **Playbook:** [docs/SUBMISSION.md](docs/SUBMISSION.md) — Devpost checklist, demo script, Vercel env, smoke test
+- **Devpost description:** [docs/DEVPOST_DESCRIPTION.md](docs/DEVPOST_DESCRIPTION.md) — full + short copy for judges
+- **Devpost story sections:** [docs/DEVPOST_STORY.md](docs/DEVPOST_STORY.md) — Inspiration, What it does, How we built it, etc.
+- **AWS DB:** Aurora PostgreSQL Serverless v2 + RDS Data API + pgvector (1024-dim Bedrock Titan embeddings)
+- **Architecture:** [docs/architecture-diagram.md](docs/architecture-diagram.md)
+- **Demo:** set `NEXT_PUBLIC_PAYMENTS_DISABLED=1` on Vercel so seat confirm works without Stripe in the video
+- Capture AWS console screenshot of Aurora cluster (Data API enabled) for Devpost

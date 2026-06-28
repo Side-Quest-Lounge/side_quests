@@ -1,27 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProfileGateLink } from "@/components/profile-gate-link";
 import { Avatar, Button, Card, Pill } from "@/components/ui";
 import { DisplayName } from "@/components/user-display";
-import type { MeGroup } from "@/lib/api/types";
+import type { ChatMessage, MeGroup } from "@/lib/api/types";
 import { useMeGroup } from "@/lib/api/use-me-group";
+import { useGroupChatPreview } from "@/lib/api/use-group-chat-preview";
 import { useMeProfile } from "@/lib/api/use-me-profile";
-import { useOpenQuests } from "@/context/open-quests";
+import { useMeQuests } from "@/lib/api/use-me-quests";
 import { DEMO, demoGroup, demoMessages, demoPastQuests } from "@/lib/demo";
+import { formatQuestStartsPill, questDisplaySubtitle, questDisplayTitle } from "@/lib/quest-display";
 import { canViewFullQuest, hasActiveSeat } from "@/lib/seat-access";
-import { chatPath, exploreQuestPath, groupPath } from "@/lib/paths";
+import { chatPath, groupPath } from "@/lib/paths";
+
+const PREVIEW_MAX_LEN = 100;
+
+function truncatePreview(text: string): string {
+  const oneLine = text.replace(/\s+/g, " ").trim();
+  if (oneLine.length <= PREVIEW_MAX_LEN) return oneLine;
+  return `${oneLine.slice(0, PREVIEW_MAX_LEN - 1)}…`;
+}
 
 export default function HomePage() {
   const { hasProfile, loading: profileLoading } = useMeProfile();
   const { group, groupId, loading: groupLoading } = useMeGroup();
-  const { quests: openQuests } = useOpenQuests();
+  const { past: pastQuestsFromApi, loading: pastLoading } = useMeQuests();
 
-  const quest = DEMO ? demoGroup : group;
+  const quest = DEMO ? (demoGroup as MeGroup) : group;
+  const pastQuests = DEMO ? demoPastQuests : pastQuestsFromApi;
   const unlocked = quest ? canViewFullQuest(quest.subscriptionStatus) : false;
   const seatActive = quest ? hasActiveSeat(quest.subscriptionStatus) : false;
-  const showPartyFeed = DEMO || (group && seatActive);
+  const showPartyFeed = DEMO || !!(group && seatActive && unlocked);
+  const partyPreviewFromApi = useGroupChatPreview(DEMO ? null : groupId, showPartyFeed && !DEMO);
+  const partyPreview = DEMO
+    ? demoMessages.filter((m) => m.author !== "agent" || !m.body.startsWith("💬")).slice(-3)
+    : partyPreviewFromApi;
+  const chatHref = DEMO ? chatPath(demoGroup.id) : groupId ? chatPath(groupId) : "/chat";
 
   return (
     <div>
@@ -40,12 +56,12 @@ export default function HomePage() {
         <Card style={{ marginBottom: "var(--space-5)", background: "var(--sunny-soft)" }}>
           <p style={{ fontWeight: 700, marginBottom: "var(--space-1)" }}>Demo mode</p>
           <p style={{ color: "var(--ink-soft)", fontSize: "var(--text-sm)" }}>
-            No sign-in required — explore the full weekly quest flow.
+            No sign-in required — explore the full weekly quest flow with sample data.
           </p>
         </Card>
       )}
 
-      {!profileLoading && !hasProfile && (
+      {!profileLoading && !hasProfile && !DEMO && (
         <Card style={{ marginBottom: "var(--space-5)", background: "var(--coral-tint)" }}>
           <p style={{ fontWeight: 700, marginBottom: "var(--space-2)" }}>Finish setting up your profile</p>
           <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-4)", fontSize: "var(--text-sm)" }}>
@@ -63,100 +79,47 @@ export default function HomePage() {
             <Card>
               <p style={{ color: "var(--ink-soft)" }}>Loading your quest…</p>
             </Card>
-          ) : DEMO ? (
-            <QuestHero quest={demoGroup} groupId={groupId} unlocked />
-          ) : !group ? (
+          ) : !quest ? (
             <FindingCard hasProfile={hasProfile} />
           ) : unlocked ? (
-            <QuestHero quest={group} groupId={groupId} unlocked />
+            <QuestHero quest={quest} groupId={DEMO ? demoGroup.id : groupId} unlocked />
           ) : (
-            <QuestTeaser quest={group} />
+            <QuestTeaser quest={quest} />
           )}
 
           {showPartyFeed && (
             <Card>
-              <h2 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-3)" }}>Latest in your party</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                {demoMessages.slice(-3).map((m) => {
-                  const isYou = m.author === "you";
-                  const isAgent = m.author === "agent";
-                  const who = isAgent ? "Concierge" : isYou ? "You" : m.author;
-                  return (
-                    <div key={m.id} style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
-                      {isAgent ? <ConciergeDot /> : <Avatar name={who} size={32} />}
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: "var(--text-sm)" }}>{who}</div>
-                        <div style={{ color: "var(--ink-soft)", fontSize: "var(--text-sm)" }}>{m.body}</div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "var(--space-3)",
+                  marginBottom: "var(--space-3)",
+                }}
+              >
+                <h2 style={{ fontSize: "var(--text-lg)", margin: 0 }}>Latest in your party</h2>
+                <Link href={chatHref} className="dash-link" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+                  Open chat →
+                </Link>
               </div>
-            </Card>
-          )}
-
-          {quest && unlocked && (
-            <Card>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-4)" }}>
-                <div style={{ minWidth: 0 }}>
-                  <h2 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-2)" }}>From your concierge</h2>
-                  <p
-                    style={{
-                      color: "var(--ink-soft)",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {quest.rationale}
-                  </p>
+              {partyPreview.length === 0 ? (
+                <p style={{ color: "var(--ink-soft)", fontSize: "var(--text-sm)", margin: 0 }}>
+                  No messages from your party yet —{" "}
+                  <Link href={chatHref} className="dash-link" style={{ fontSize: "inherit", fontWeight: 600 }}>
+                    say hi in chat
+                  </Link>
+                  .
+                </p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                  {partyPreview.map((m) => (
+                    <PartyMessagePreview key={m.id} message={m} members={quest!.members} />
+                  ))}
                 </div>
-                <ProfileGateLink href={groupPath(groupId ?? undefined)} className="dash-link" style={{ flexShrink: 0, marginTop: "var(--space-1)" }}>
-                  Full reveal →
-                </ProfileGateLink>
-              </div>
+              )}
             </Card>
           )}
-
-          {group && !unlocked && (
-            <Card style={{ background: "var(--cream-deep)" }}>
-              <h2 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-2)" }}>Your party is ready</h2>
-              <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-4)" }}>
-                {group.members.length} people matched for you. Confirm your seat to see names, the concierge&apos;s
-                rationale, and party chat.
-              </p>
-              <Link href={groupPath(group.id)}>
-                <Button variant="primary">View party &amp; confirm seat →</Button>
-              </Link>
-            </Card>
-          )}
-
-          <Card>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
-              <h2 style={{ fontSize: "var(--text-lg)" }}>Open quests anyone can join</h2>
-              <Link href="/explore" className="dash-link">
-                See all →
-              </Link>
-            </div>
-            <div className="dash-duo">
-              {openQuests.slice(0, 2).map((e) => (
-                <Card key={e.id} interactive style={{ height: "100%" }}>
-                  <div style={{ fontSize: "1.6rem", marginBottom: "var(--space-2)" }}>{e.emoji}</div>
-                  <div style={{ fontWeight: 700, marginBottom: "var(--space-1)" }}>{e.title}</div>
-                  <div className="meta" style={{ color: "var(--ink-soft)" }}>
-                    {e.when} · {e.venue}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "var(--space-3)" }}>
-                    <Pill tone="success">{e.spotsLeft} spots left</Pill>
-                    <Link href={exploreQuestPath(e.id)} className="dash-link">
-                      More info →
-                    </Link>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </Card>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
@@ -166,42 +129,39 @@ export default function HomePage() {
             <span className="meta" style={{ display: "block", marginBottom: "var(--space-3)" }}>
               Your seat
             </span>
-            {!group && !DEMO ? (
-              <p style={{ color: "var(--ink-soft)" }}>Match into a party first — then confirm your seat.</p>
-            ) : seatActive ? (
-              <p style={{ color: "var(--success-fg)", fontWeight: 700 }}>Confirmed — see you there 🎉</p>
-            ) : (
-              <>
-                <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-3)" }}>
-                  Seat not confirmed yet — lock in on your group reveal.
-                </p>
-                <Link href={groupPath(groupId ?? undefined)} className="dash-link">
-                  Confirm seat →
-                </Link>
-              </>
-            )}
+            <SeatStatus group={quest as MeGroup | null} seatActive={seatActive} />
           </Card>
 
           <Card>
             <span className="meta" style={{ display: "block", marginBottom: "var(--space-3)" }}>
               Past quests
             </span>
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-              {demoPastQuests.map((q) => (
-                <div key={q.id} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-                  <span style={{ fontSize: "1.25rem" }}>{q.emoji}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: "var(--text-sm)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {q.title}
+            {pastLoading && !DEMO ? (
+              <p style={{ color: "var(--ink-soft)", fontSize: "var(--text-sm)" }}>Loading…</p>
+            ) : pastQuests.length === 0 ? (
+              <p style={{ color: "var(--ink-soft)", fontSize: "var(--text-sm)" }}>
+                Completed quests appear here after your first Side Quest.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                {pastQuests.map((q) => (
+                  <div key={q.id} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+                    <span style={{ fontSize: "1.25rem" }}>{q.emoji}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: "var(--text-sm)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {q.title}
+                      </div>
+                      <div className="meta" style={{ color: "var(--ink-faint)" }}>{q.date}</div>
                     </div>
-                    <div className="meta" style={{ color: "var(--ink-faint)" }}>{q.date}</div>
+                    {q.vibeScore != null && (
+                      <span aria-label={`${q.vibeScore} out of 5`} style={{ color: "var(--lantern-ink)", fontSize: "var(--text-sm)" }}>
+                        {"★".repeat(q.vibeScore)}
+                      </span>
+                    )}
                   </div>
-                  <span aria-label={`${q.vibeScore} out of 5`} style={{ color: "var(--lantern-ink)", fontSize: "var(--text-sm)" }}>
-                    {"★".repeat(q.vibeScore)}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
             <Link href="/quests" className="dash-link" style={{ display: "inline-block", marginTop: "var(--space-3)" }}>
               All quests →
             </Link>
@@ -209,6 +169,24 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function SeatStatus({ group, seatActive }: { group: MeGroup | null; seatActive: boolean }) {
+  if (!group) {
+    return <p style={{ color: "var(--ink-soft)", margin: 0, fontSize: "var(--text-sm)" }}>Not matched yet</p>;
+  }
+  if (seatActive) {
+    return (
+      <p style={{ color: "var(--success-fg)", fontWeight: 700, margin: 0, fontSize: "var(--text-sm)" }}>
+        Confirmed — see you there 🎉
+      </p>
+    );
+  }
+  return (
+    <p style={{ color: "var(--ink-soft)", margin: 0, fontSize: "var(--text-sm)" }}>
+      Pending — confirm on your group reveal
+    </p>
   );
 }
 
@@ -231,15 +209,26 @@ function FindingCard({ hasProfile }: { hasProfile: boolean }) {
 }
 
 function QuestTeaser({ quest }: { quest: MeGroup }) {
-  const activity = quest.venue?.activityType ?? "Weekly activity";
+  const title = questDisplayTitle(quest.venue);
+  const subtitle = questDisplaySubtitle(quest.venue);
+  const when = formatQuestStartsPill(quest.startsAt);
+
   return (
     <Card style={{ boxShadow: "var(--shadow-md), var(--shadow-coral)" }}>
-      <span className="meta" style={{ color: "var(--lantern-ink)" }}>
-        This week&apos;s quest
-      </span>
-      <h2 style={{ fontSize: "var(--text-2xl)", margin: "var(--space-2) 0" }}>{activity}</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
+        <span className="meta" style={{ color: "var(--lantern-ink)" }}>
+          This week&apos;s quest
+        </span>
+        <Pill tone="coral">{when}</Pill>
+      </div>
+      <h2 style={{ fontSize: "var(--text-2xl)", margin: "0 0 var(--space-2)" }}>{title}</h2>
+      {subtitle && (
+        <div className="meta" style={{ color: "var(--ink-soft)", marginBottom: "var(--space-3)" }}>
+          {subtitle}
+        </div>
+      )}
       <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-4)" }}>
-        Party of {quest.members.length} matched · confirm your seat to see who&apos;s coming.
+        {`${quest.members.length} people matched for you. Confirm your seat to see names, the concierge's rationale, and party chat.`}
       </p>
       <Link href={groupPath(quest.id)}>
         <Button variant="primary">View party &amp; confirm seat →</Button>
@@ -253,14 +242,15 @@ function QuestHero({
   groupId,
   unlocked,
 }: {
-  quest: MeGroup | typeof demoGroup;
+  quest: MeGroup;
   groupId: string | null;
   unlocked: boolean;
 }) {
   const venue = quest.venue;
-  const title = venue?.name ?? "This week's quest";
-  const subtitle = [venue?.activityType, venue?.address].filter(Boolean).join(" · ");
-  const chatHref = groupId ? chatPath(groupId) : chatPath();
+  const title = questDisplayTitle(venue);
+  const subtitle = questDisplaySubtitle(venue);
+  const when = formatQuestStartsPill(quest.startsAt);
+  const chatHref = groupId ? chatPath(groupId) : "/chat";
 
   return (
     <Card style={{ padding: 0, overflow: "hidden", boxShadow: "var(--shadow-md), var(--shadow-coral)" }}>
@@ -269,7 +259,7 @@ function QuestHero({
           <span className="meta" style={{ color: "var(--lantern-ink)" }}>
             This week&apos;s quest
           </span>
-          <Pill tone="coral">Saturday</Pill>
+          <Pill tone="coral">{when}</Pill>
         </div>
         <h2 style={{ fontSize: "var(--text-2xl)", marginBottom: "var(--space-2)" }}>{title}</h2>
         {subtitle && (
@@ -277,6 +267,18 @@ function QuestHero({
             {subtitle}
           </div>
         )}
+        <ProfileGateLink
+          href={groupPath(groupId ?? undefined)}
+          className="dash-link"
+          style={{
+            display: "inline-block",
+            marginTop: "var(--space-2)",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+          }}
+        >
+          Full reveal →
+        </ProfileGateLink>
       </div>
 
       <div style={{ padding: "var(--space-5)" }}>
@@ -309,14 +311,30 @@ function QuestHero({
   );
 }
 
+function formatCountdown(startsAt: string): string {
+  const ms = new Date(startsAt).getTime() - Date.now();
+  if (ms <= 0) return "Now";
+  const days = Math.floor(ms / 86_400_000);
+  const hours = Math.floor((ms % 86_400_000) / 3_600_000);
+  const mins = Math.floor((ms % 3_600_000) / 60_000);
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+
 function Countdown({ startsAt }: { startsAt: string | null }) {
-  const [label] = useState(() => {
-    if (!startsAt) return "—";
-    const ms = new Date(startsAt).getTime() - Date.now();
-    const days = Math.max(0, Math.floor(ms / 86_400_000));
-    const hours = Math.max(0, Math.floor((ms % 86_400_000) / 3_600_000));
-    return `${days}d ${hours}h`;
-  });
+  const [label, setLabel] = useState(() => (startsAt ? formatCountdown(startsAt) : "—"));
+
+  useEffect(() => {
+    if (!startsAt) {
+      setLabel("—");
+      return;
+    }
+    const tick = () => setLabel(formatCountdown(startsAt));
+    tick();
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, [startsAt]);
 
   return (
     <Card style={{ textAlign: "center", boxShadow: "var(--shadow-sm), var(--shadow-coral)" }}>
@@ -327,6 +345,39 @@ function Countdown({ startsAt }: { startsAt: string | null }) {
         {label}
       </div>
     </Card>
+  );
+}
+
+function PartyMessagePreview({
+  message: m,
+  members,
+}: {
+  message: ChatMessage;
+  members: MeGroup["members"];
+}) {
+  const isAgent = m.author === "agent";
+  const member = members.find((x) => x.userId === m.author);
+  const isYou = member?.isYou ?? false;
+  const who = isAgent ? "Concierge" : isYou ? "You" : (member?.name ?? m.author);
+
+  return (
+    <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
+      {isAgent ? <ConciergeDot /> : <Avatar name={who} size={32} />}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontWeight: 700, fontSize: "var(--text-sm)" }}>{who}</div>
+        <div
+          style={{
+            color: "var(--ink-soft)",
+            fontSize: "var(--text-sm)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {truncatePreview(m.body)}
+        </div>
+      </div>
+    </div>
   );
 }
 

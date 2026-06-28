@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
-import { DEMO } from "@/lib/demo";
-import { isProfileComplete, saveOnboardingNext } from "@/lib/onboarding-session";
+import { type ComponentProps, type ReactNode, useState } from "react";
+import { saveOnboardingNext, isProfileComplete } from "@/lib/onboarding-session";
 import { useMeProfile } from "@/lib/api/use-me-profile";
+import { DEMO } from "@/lib/demo";
 
 type ProfileGateLinkProps = Omit<ComponentProps<typeof Link>, "href"> & {
   href: string;

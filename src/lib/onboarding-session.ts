@@ -1,6 +1,6 @@
 /**
  * Browser sessionStorage for onboarding draft + profile-gate redirect.
- * Used in demo mode only for profile-complete flag; production uses /api/me/profile.
+ * Production profile state comes from /api/me/profile.
  */
 export type OnboardingDraft = {
   name: string;

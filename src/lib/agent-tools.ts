@@ -35,9 +35,31 @@ export function bookVenue(venues: Venue[], activityPref?: string): Venue {
   })[0];
 }
 
-/** Returns the signature slot: next Saturday at 4pm Pacific/Auckland. */
+/** Parse events.week_of — ISO week label ("2026-W26") or date string. */
+export function parseWeekOf(weekOf: string): Date | null {
+  const trimmed = weekOf.trim();
+  if (!trimmed) return null;
+
+  const isoWeek = /^(\d{4})-W(\d{2})$/i.exec(trimmed);
+  if (isoWeek) {
+    const year = Number(isoWeek[1]);
+    const week = Number(isoWeek[2]);
+    const jan4 = new Date(year, 0, 4);
+    const jan4Day = jan4.getDay() || 7;
+    const mondayWeek1 = new Date(jan4);
+    mondayWeek1.setDate(jan4.getDate() - jan4Day + 1);
+    const monday = new Date(mondayWeek1);
+    monday.setDate(mondayWeek1.getDate() + (week - 1) * 7);
+    return monday;
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/** Returns the signature slot: next Saturday at 4pm from the event week anchor. */
 export function pickStartTime(weekOf: string): Date {
-  const base = weekOf ? new Date(weekOf) : new Date();
+  const base = parseWeekOf(weekOf) ?? new Date();
   const d = new Date(base);
   const day = d.getDay();
   const daysUntilSat = (6 - day + 7) % 7 || 7;
@@ -49,15 +71,24 @@ export function pickStartTime(weekOf: string): Date {
 export function parseRevealPayload(raw: string | null): {
   rationale: string;
   icebreakers: string[];
+  chatWelcomed?: boolean;
 } {
   if (!raw) return { rationale: "", icebreakers: [] };
   try {
-    const parsed = JSON.parse(raw) as { rationale?: string; icebreakers?: string[] };
+    const parsed = JSON.parse(raw) as {
+      rationale?: string;
+      icebreakers?: string[];
+      chatWelcomed?: boolean;
+    };
     if (typeof parsed.rationale === "string") {
       return {
         rationale: parsed.rationale,
         icebreakers: Array.isArray(parsed.icebreakers) ? parsed.icebreakers : [],
+        chatWelcomed: parsed.chatWelcomed === true,
       };
+    }
+    if (parsed.chatWelcomed === true) {
+      return { rationale: "", icebreakers: [], chatWelcomed: true };
     }
   } catch {
     /* plain text legacy */
@@ -65,6 +96,10 @@ export function parseRevealPayload(raw: string | null): {
   return { rationale: raw, icebreakers: [] };
 }
 
-export function serializeRevealPayload(rationale: string, icebreakers: string[]): string {
-  return JSON.stringify({ rationale, icebreakers });
+export function serializeRevealPayload(
+  rationale: string,
+  icebreakers: string[],
+  extra?: { chatWelcomed?: boolean },
+): string {
+  return JSON.stringify({ rationale, icebreakers, ...extra });
 }

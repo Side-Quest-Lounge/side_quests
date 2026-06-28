@@ -1,15 +1,18 @@
-/**
- * Paid-seat gating for group reveal and chat.
- * `subscription_status === 'active'` is set by Stripe webhook on users table.
- */
 import { DEMO } from "@/lib/demo";
+import { PAYMENTS_DISABLED } from "@/lib/payments";
 
-/** Paid seat — set via Stripe webhook (`users.subscription_status = active`). */
+/** Paid seat gates full quest reveal, chat, and hosting open quests. */
+
 export function hasActiveSeat(status: string | undefined): boolean {
-  return status === "active";
+  return status === "active" || status === "trial";
 }
 
-/** Full quest details, member names, chat (demo mode always unlocks). */
 export function canViewFullQuest(status: string | undefined): boolean {
   return DEMO || hasActiveSeat(status);
+}
+
+/** Paid or trial subscribers can create open quests for others to join. */
+export function canHostOpenQuest(status: string | undefined): boolean {
+  if (PAYMENTS_DISABLED) return true;
+  return hasActiveSeat(status);
 }

@@ -215,7 +215,7 @@ function QuizFlow() {
               {[1, 2, 3, 4, 5].map((n) => (
                 <Button
                   key={n}
-                  variant={answers[question.id] === n ? "accent" : "ghost"}
+                  variant={answers[question.id] === n ? "primary" : "ghost"}
                   onClick={() => pick(n)}
                   disabled={saving}
                   style={{ justifyContent: "space-between", minHeight: 48 }}

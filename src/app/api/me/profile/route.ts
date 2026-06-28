@@ -3,17 +3,8 @@ import { eq } from "drizzle-orm";
 import { getOrCreateUser } from "@/lib/current-user";
 import { db } from "@/db/client";
 import { profiles } from "@/db/schema";
-import { DEMO } from "@/lib/demo";
 
 export async function GET(): Promise<NextResponse> {
-  if (DEMO) {
-    return NextResponse.json({
-      profile: null,
-      user: { name: "Alex", bio: null, isNewcomer: true },
-      demo: true,
-    });
-  }
-
   const user = await getOrCreateUser();
   if (!user) return NextResponse.json({ error: "unauth" }, { status: 401 });
 

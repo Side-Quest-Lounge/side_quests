@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Avatar } from "@/components/ui";
 import { DisplayName } from "@/components/user-display";
-import { DEMO_GROUP_ID } from "@/lib/demo";
 import { chatPath } from "@/lib/paths";
 
 type NavItem = {
@@ -20,7 +19,7 @@ type NavItem = {
 const nav: NavItem[] = [
   { href: "/home", label: "Home", icon: IconHome, match: ["/finding", "/group", "/survey", "/profile"], tab: true },
   { href: "/explore", label: "Explore", icon: IconCompass, tab: true },
-  { href: chatPath(), label: "Chat", icon: IconChat, match: ["/chat"], tab: true },
+  { href: "/chat", label: "Chat", icon: IconChat, match: ["/chat"], tab: true },
   { href: "/quests", label: "Quests", icon: IconMap },
 ];
 
@@ -84,10 +83,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span>Side&nbsp;Quest</span>
           </Link>
           <div style={{ flex: 1 }} />
-          <span className="app-status">
-            <span className="app-status-dot" />
-            This week · Sat 10am
-          </span>
           <span aria-hidden className="app-bell">
             <IconBell />
           </span>

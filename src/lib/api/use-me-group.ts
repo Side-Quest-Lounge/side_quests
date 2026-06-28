@@ -1,6 +1,5 @@
 "use client";
 
-/** Client hook: current matched group from GET /api/me/group (demo uses mock group). */
 import { useCallback, useEffect, useState } from "react";
 import { DEMO, demoGroup } from "@/lib/demo";
 import type { MeGroup, MeGroupResponse } from "./types";
@@ -30,6 +29,11 @@ export function useMeGroup(): MeGroupState {
     setError(null);
     try {
       const res = await fetch("/api/me/group");
+      if (res.status === 401) {
+        setGroup(null);
+        setError("unauth");
+        return;
+      }
       if (!res.ok) {
         setError("Could not load group");
         setGroup(null);

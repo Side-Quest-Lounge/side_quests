@@ -42,10 +42,10 @@ The code is mostly built — this is about connecting the services.
 
 ---
 
-## 3. AI (Anthropic + AWS Bedrock)
+## 3. AI (AWS Bedrock)
 
-- [ ] Add `ANTHROPIC_API_KEY` to `.env.local` (for group reveal + icebreakers)
 - [ ] In AWS, make sure your IAM user/role can call **Bedrock Titan** (`amazon.titan-embed-text-v2:0`) — used when users complete the quiz and update their profile
+- [ ] (Future) Claude for live chat concierge — not required for hackathon build
 
 ---
 
@@ -114,13 +114,17 @@ API routes and pages run together; the database lives on AWS.
 
 ## 9. Hackathon submission
 
-From `hackathon_info.md`:
+**Full playbook:** [`docs/SUBMISSION.md`](docs/SUBMISSION.md) — Devpost checklist, demo script, env vars, smoke test.
 
-- [ ] Short text description (mention **Aurora PostgreSQL**)
-- [ ] Demo video (< 3 min) — problem, who it’s for, show the app working, explain AWS DB
+Quick checklist from `hackathon_info.md`:
+
+- [ ] Text description (mention **Aurora PostgreSQL** + Data API + pgvector) — copy from [`docs/DEVPOST_DESCRIPTION.md`](docs/DEVPOST_DESCRIPTION.md)
+- [ ] Demo video (< 3 min) — use script in `docs/SUBMISSION.md`
 - [ ] Published **Vercel project link** + **Vercel Team ID**
-- [ ] **Architecture diagram** → see `docs/architecture-diagram.md`
-- [ ] **AWS screenshot** — console showing your Aurora cluster (proves real AWS DB usage)
+- [ ] **Architecture diagram** → `docs/architecture-diagram.md` (export PNG)
+- [ ] **AWS screenshot** — Aurora console (Data API enabled)
+
+**Before recording:** deploy latest code, set `NEXT_PUBLIC_PAYMENTS_DISABLED=1` on Vercel, run golden path on live URL.
 
 ---
 
@@ -132,5 +136,5 @@ From `hackathon_info.md`:
 | Database | AWS Aurora (always remote) |
 | Login | Clerk (hosted) |
 | Checkout | Stripe (hosted) |
-| Profile embeddings | AWS Bedrock |
-| Group reveal text | Anthropic Claude |
+| Profile embeddings | AWS Bedrock Titan |
+| Group reveal text | Template + rule-based venue pick |
