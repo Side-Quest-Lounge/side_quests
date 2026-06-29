@@ -81,8 +81,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       })
       .where(eq(users.id, user.id));
 
-    const embedding = await embedProfile(answers, bioValue);
-
+    // Persist quiz answers before embedding — Bedrock can throttle/timeout on Vercel.
     await db
       .insert(profiles)
       .values({ userId: user.id, answers })
@@ -91,6 +90,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         set: { answers },
       });
 
+    const embedding = await embedProfile(answers, bioValue);
     if (embedding) {
       await setProfileEmbedding(user.id, embedding);
     }

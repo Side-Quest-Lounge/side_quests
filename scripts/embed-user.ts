@@ -48,7 +48,7 @@ async function main(): Promise<void> {
 
   if (!embedding) {
     console.error("Failed — Bedrock still throttling or unavailable.");
-    console.error("Set ALLOW_DETERMINISTIC_EMBEDDINGS=1 for hash-based fallback, or request a Bedrock quota increase.");
+    console.error("Bedrock failed — quiz save uses automatic deterministic fallback on throttle. For IAM issues, enable Titan in Bedrock console.");
     process.exit(1);
   }
 

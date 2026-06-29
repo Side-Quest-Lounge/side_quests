@@ -89,17 +89,33 @@ function QuizFlow() {
     setSaving(true);
     setSaveProgress(8);
     setError(null);
-    const res = await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: draft!.name,
-        bio: draft!.bio,
-        isNewcomer: draft!.isNewcomer,
-        answers: finalAnswers,
-      }),
-    });
-    const result = (await res.json()) as { embedded?: boolean; error?: string };
+    let res: Response;
+    try {
+      res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: draft!.name,
+          bio: draft!.bio,
+          isNewcomer: draft!.isNewcomer,
+          answers: finalAnswers,
+        }),
+      });
+    } catch {
+      setSaving(false);
+      setSaveProgress(0);
+      setError("Network error — check your connection and try again.");
+      return;
+    }
+    let result: { embedded?: boolean; error?: string } = {};
+    try {
+      result = (await res.json()) as { embedded?: boolean; error?: string };
+    } catch {
+      setSaving(false);
+      setSaveProgress(0);
+      setError("Could not save profile — server timed out. Try again.");
+      return;
+    }
     if (!res.ok) {
       setSaving(false);
       setSaveProgress(0);

@@ -1,9 +1,6 @@
 /**
  * Bedrock Titan embeddings (1024-dim) for profiles.
- * `tryEmbedText` / `embedProfile` swallow errors so quiz save still succeeds without Bedrock.
- *
- * When Bedrock throttles (common on new accounts in ap-southeast-2), seed can fall back to
- * `deterministicEmbed()` — good enough for matching demos; not semantic-quality Titan vectors.
+ * On throttle, `embedTextWithFallback` / `embedProfile` use deterministic vectors automatically.
  */
 import { createHash } from "crypto";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
@@ -123,12 +120,13 @@ export async function embedTextWithRetry(
   throw new EmbeddingError("Bedrock embedding failed after retries");
 }
 
-/** Bedrock first; on throttle, optional deterministic fallback for dev/seed. */
+/** Bedrock first; on throttle, falls back to deterministic embedding (unless disabled). */
 export async function embedTextWithFallback(
   text: string,
   opts: { allowDeterministic?: boolean; maxAttempts?: number; baseDelayMs?: number } = {},
 ): Promise<{ embedding: number[]; source: "bedrock" | "deterministic" }> {
-  const allowDeterministic = opts.allowDeterministic ?? process.env.ALLOW_DETERMINISTIC_EMBEDDINGS === "1";
+  const allowDeterministic =
+    opts.allowDeterministic ?? process.env.DISABLE_DETERMINISTIC_EMBEDDINGS !== "1";
   try {
     const embedding = await embedTextWithRetry(text, opts);
     return { embedding, source: "bedrock" };
@@ -156,16 +154,14 @@ export async function embedProfile(
   answers: Record<string, number | string>,
   bio?: string | null,
   likes?: string[],
+  opts?: { maxAttempts?: number; baseDelayMs?: number },
 ): Promise<number[] | null> {
   let text = profileToText(answers, bio ?? undefined);
   if (likes?.length) text += "; likes: " + likes.join(", ");
-  const allowDeterministic = process.env.ALLOW_DETERMINISTIC_EMBEDDINGS === "1";
   try {
     const { embedding } = await embedTextWithFallback(text, {
-      allowDeterministic,
-      // When deterministic is allowed, don't burn 30s retrying a dead Bedrock quota.
-      maxAttempts: allowDeterministic ? 1 : 5,
-      baseDelayMs: allowDeterministic ? 0 : 3000,
+      maxAttempts: opts?.maxAttempts ?? 1,
+      baseDelayMs: opts?.baseDelayMs ?? 0,
     });
     return embedding;
   } catch (err) {
