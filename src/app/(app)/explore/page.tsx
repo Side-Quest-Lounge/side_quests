@@ -10,7 +10,6 @@ import { useOpenQuests } from "@/context/open-quests";
 import { formatOpenQuestDate } from "@/lib/open-quest-utils";
 import { PAYMENTS_DISABLED } from "@/lib/payments";
 import { clampOpenQuestCapacity } from "@/lib/open-quest-limits";
-import { openQuestChatPath } from "@/lib/paths";
 
 const CHAT_MSG_KEY = (questId: string) => `sq_open_chat_${questId}`;
 
@@ -74,7 +73,7 @@ function CreateOpenQuestForm() {
     seedWelcomeMessage(created);
     reset();
     setOpen(false);
-    router.push(openQuestChatPath(created.id));
+    router.replace(`/explore?quest=${encodeURIComponent(created.id)}`);
   }
 
   return (
@@ -116,7 +115,7 @@ function CreateOpenQuestForm() {
           {error && <p style={{ color: "var(--coral)", fontWeight: 600, fontSize: "var(--text-sm)" }}>{error}</p>}
           <div style={{ display: "flex", gap: "var(--space-3)" }}>
             <Button variant="primary" type="submit">
-              Publish & open chat →
+              Publish quest
             </Button>
             <Button variant="ghost" type="button" onClick={() => { setOpen(false); reset(); }}>
               Cancel

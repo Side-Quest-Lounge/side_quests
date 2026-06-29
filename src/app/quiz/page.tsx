@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
@@ -18,6 +17,24 @@ import {
 import { notifyMeProfileUpdated } from "@/lib/api/use-me-profile";
 import { quizQuestions } from "@/lib/quiz";
 
+function ChevronLeft({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  );
+}
+
 function QuizFlow() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,6 +44,10 @@ function QuizFlow() {
   const [draft, setDraft] = useState<OnboardingDraft | null>(null);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  /** Transient highlight for the option just tapped (avoids stale retake answers lighting the wrong row). */
+  const [pickFlash, setPickFlash] = useState<{ step: number; score: number } | null>(null);
+  /** Furthest question reached this session — only show saved answers when revisiting. */
+  const [furthestStep, setFurthestStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState(0);
   const [saveLabel, setSaveLabel] = useState("Saving your profile…");
@@ -182,14 +203,29 @@ function QuizFlow() {
   }
 
   function pick(score: number) {
+    setPickFlash({ step, score });
     const nextAnswers = { ...answers, [question.id]: score };
     setAnswers(nextAnswers);
     if (step < quizQuestions.length - 1) {
+      setFurthestStep((prev) => Math.max(prev, step + 1));
       setStep(step + 1);
       return;
     }
     void finish(nextAnswers);
   }
+
+  function goToPreviousQuestion() {
+    if (step === 0) return;
+    setPickFlash(null);
+    setStep(step - 1);
+  }
+
+  const selectedScore =
+    pickFlash?.step === step
+      ? pickFlash.score
+      : step < furthestStep
+        ? answers[question.id]
+        : undefined;
 
   return (
     <main
@@ -269,7 +305,7 @@ function QuizFlow() {
               {[1, 2, 3, 4, 5].map((n) => (
                 <Button
                   key={n}
-                  variant={answers[question.id] === n ? "primary" : "ghost"}
+                  variant={selectedScore === n ? "primary" : "ghost"}
                   onClick={() => pick(n)}
                   disabled={saving}
                   style={{ justifyContent: "space-between", minHeight: 48 }}
@@ -280,11 +316,33 @@ function QuizFlow() {
               ))}
             </div>
             {error && <p style={{ color: "var(--coral)", marginTop: "var(--space-4)", fontWeight: 600 }}>{error}</p>}
-            <p style={{ marginTop: "var(--space-5)", fontSize: "var(--text-sm)" }}>
-              <Link href={isRetake ? "/profile" : "/onboarding"} style={{ color: "var(--ink-faint)" }}>
-                ← Back
-              </Link>
-            </p>
+            {step > 0 && (
+              <button
+                type="button"
+                onClick={goToPreviousQuestion}
+                disabled={saving}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "var(--space-2)",
+                  width: "100%",
+                  marginTop: "var(--space-5)",
+                  paddingTop: "var(--space-4)",
+                  background: "none",
+                  border: "none",
+                  borderTop: "1px solid var(--border)",
+                  color: "var(--ink-soft)",
+                  fontWeight: 600,
+                  fontSize: "var(--text-sm)",
+                  cursor: saving ? "not-allowed" : "pointer",
+                  opacity: saving ? 0.45 : 1,
+                }}
+              >
+                <ChevronLeft size={14} />
+                Previous question
+              </button>
+            )}
           </>
         )}
       </Card>
