@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { Button, Card, Pill } from "@/components/ui";
+import { DEMO } from "@/lib/demo";
 import {
   consumeOnboardingNext,
+  loadDemoQuizAnswers,
   loadOnboardingDraft,
+  saveDemoQuizAnswers,
   saveOnboardingDraft,
   setProfileComplete,
   type OnboardingDraft,
@@ -17,6 +21,7 @@ import { quizQuestions } from "@/lib/quiz";
 function QuizFlow() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isSignedIn } = useAuth();
   const isRetake = searchParams.get("retake") === "1";
   const [ready, setReady] = useState(false);
   const [draft, setDraft] = useState<OnboardingDraft | null>(null);
@@ -32,6 +37,23 @@ function QuizFlow() {
 
   useEffect(() => {
     async function init() {
+      if (isRetake && DEMO && !isSignedIn) {
+        const sessionDraft = loadOnboardingDraft();
+        const storedAnswers = loadDemoQuizAnswers();
+        if (!sessionDraft || !storedAnswers) {
+          router.replace("/onboarding");
+          return;
+        }
+        setDraft(sessionDraft);
+        const nums: Record<string, number> = {};
+        for (const [k, v] of Object.entries(storedAnswers)) {
+          if (typeof v === "number") nums[k] = v;
+        }
+        setAnswers(nums);
+        setReady(true);
+        return;
+      }
+
       if (isRetake) {
         const res = await fetch("/api/me/profile");
         if (!res.ok) {
@@ -69,7 +91,7 @@ function QuizFlow() {
       setReady(true);
     }
     void init();
-  }, [isRetake, router]);
+  }, [isRetake, isSignedIn, router]);
 
   useEffect(() => {
     if (!saving) {
@@ -89,6 +111,22 @@ function QuizFlow() {
     setSaving(true);
     setSaveProgress(8);
     setError(null);
+
+    if (DEMO && !isSignedIn) {
+      saveDemoQuizAnswers(finalAnswers);
+      saveOnboardingDraft(draft!);
+      setSaveLabel(isRetake ? "All set — back to profile…" : "All set — taking you home…");
+      setSaveProgress(100);
+      setProfileComplete(true);
+      notifyMeProfileUpdated();
+      const nextFromQuery = searchParams.get("next");
+      const destination = isRetake
+        ? "/profile"
+        : (nextFromQuery ?? consumeOnboardingNext("/home"));
+      setTimeout(() => router.push(destination), 450);
+      return;
+    }
+
     let res: Response;
     try {
       res = await fetch("/api/profile", {

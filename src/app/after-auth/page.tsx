@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Card, Pill } from "@/components/ui";
 import { useMeProfile } from "@/lib/api/use-me-profile";
+import { clearDemoSession } from "@/lib/onboarding-session";
 
 export default function AfterAuthPage() {
   const router = useRouter();
@@ -22,6 +23,8 @@ export default function AfterAuthPage() {
     }
 
     if (loading) return;
+
+    clearDemoSession();
 
     if (error === "unauth") {
       router.replace("/sign-in");

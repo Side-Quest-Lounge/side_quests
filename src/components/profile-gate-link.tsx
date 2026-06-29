@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ComponentProps, type ReactNode, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { saveOnboardingNext, isProfileComplete } from "@/lib/onboarding-session";
 import { useMeProfile } from "@/lib/api/use-me-profile";
 import { DEMO } from "@/lib/demo";
@@ -14,11 +15,13 @@ type ProfileGateLinkProps = Omit<ComponentProps<typeof Link>, "href"> & {
 
 export function ProfileGateLink({ href, children, onClick, ...props }: ProfileGateLinkProps) {
   const router = useRouter();
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { loading, hasProfile } = useMeProfile();
   const [demoComplete] = useState(DEMO ? isProfileComplete() : false);
 
-  const complete = DEMO ? demoComplete : hasProfile;
-  const checked = DEMO || !loading;
+  const guestDemo = DEMO && authLoaded && !isSignedIn;
+  const complete = guestDemo ? demoComplete : hasProfile;
+  const checked = guestDemo || (!loading && authLoaded);
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
     onClick?.(e);

@@ -61,11 +61,13 @@ export default function HomePage() {
         </Card>
       )}
 
-      {!profileLoading && !hasProfile && !DEMO && (
+      {!profileLoading && !hasProfile && (
         <Card style={{ marginBottom: "var(--space-5)", background: "var(--coral-tint)" }}>
           <p style={{ fontWeight: 700, marginBottom: "var(--space-2)" }}>Finish setting up your profile</p>
           <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-4)", fontSize: "var(--text-sm)" }}>
-            Complete the vibe quiz so your concierge can match you with the right party.
+            {DEMO
+              ? "Complete the vibe quiz to unlock the full demo flow — saved locally in your browser, no account needed."
+              : "Complete the vibe quiz so your concierge can match you with the right party."}
           </p>
           <Link href="/onboarding">
             <Button variant="primary">Continue setup →</Button>

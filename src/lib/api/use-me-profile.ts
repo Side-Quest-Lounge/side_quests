@@ -5,7 +5,11 @@ import { useUser } from "@clerk/nextjs";
 import { useCallback, useEffect, useState } from "react";
 import { clerkDisplayName } from "@/lib/display-name";
 import { DEMO, DEMO_GUEST_NAME } from "@/lib/demo";
-import { isProfileComplete } from "@/lib/onboarding-session";
+import {
+  isProfileComplete,
+  loadDemoQuizAnswers,
+  loadOnboardingDraft,
+} from "@/lib/onboarding-session";
 import type { MeProfileResponse } from "./types";
 
 export const ME_PROFILE_UPDATED = "sq-me-profile-updated";
@@ -55,27 +59,36 @@ type MeProfileState = {
 
 export function useMeProfile(): MeProfileState {
   const { isLoaded: clerkLoaded, isSignedIn, user: clerkUser } = useUser();
-  const [loading, setLoading] = useState(!DEMO);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<MeProfileResponse["user"] | null>(null);
   const [profile, setProfile] = useState<MeProfileResponse["profile"]>(null);
 
-  const applyDemoState = useCallback(() => {
+  const applyDemoGuestState = useCallback(() => {
     if (!clerkLoaded) {
       setLoading(true);
       return;
     }
     const demoName =
       isSignedIn && clerkUser ? clerkDisplayName(clerkUser) : DEMO_GUEST_NAME;
-    setUser({ name: demoName, bio: null, isNewcomer: true });
-    setProfile(isProfileComplete() ? { answers: {} } : null);
+    const draft = loadOnboardingDraft();
+    setUser({
+      name: draft?.name ?? demoName,
+      bio: draft?.bio ? draft.bio : null,
+      isNewcomer: draft?.isNewcomer ?? true,
+    });
+    setProfile(
+      isProfileComplete()
+        ? { answers: loadDemoQuizAnswers() ?? {} }
+        : null,
+    );
     setLoading(false);
     setError(null);
   }, [clerkLoaded, isSignedIn, clerkUser]);
 
   const refetch = useCallback(async () => {
-    if (DEMO) {
-      applyDemoState();
+    if (DEMO && !isSignedIn) {
+      applyDemoGuestState();
       return;
     }
 
@@ -109,7 +122,7 @@ export function useMeProfile(): MeProfileState {
     } finally {
       setLoading(false);
     }
-  }, [applyDemoState, clerkLoaded, isSignedIn]);
+  }, [applyDemoGuestState, clerkLoaded, isSignedIn]);
 
   useEffect(() => {
     void refetch();

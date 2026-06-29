@@ -3,11 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { Avatar, Button, Card, Field, Pill } from "@/components/ui";
+import { AuthActions } from "@/components/auth-actions";
 import { notifyMeProfileUpdated, useMeProfile } from "@/lib/api/use-me-profile";
+import { DEMO } from "@/lib/demo";
+import { saveOnboardingDraft } from "@/lib/onboarding-session";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { isSignedIn } = useAuth();
   const { loading, user, hasProfile, refetch } = useMeProfile();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
@@ -34,6 +39,20 @@ export default function ProfilePage() {
     setSaving(true);
     setError(null);
     setSaved(false);
+
+    if (DEMO && !isSignedIn) {
+      saveOnboardingDraft({
+        name: name.trim(),
+        bio: bio.trim(),
+        isNewcomer,
+      });
+      setSaving(false);
+      setSaved(true);
+      void refetch();
+      notifyMeProfileUpdated();
+      setTimeout(() => setSaved(false), 2500);
+      return;
+    }
 
     const res = await fetch("/api/profile", {
       method: "PATCH",
@@ -172,6 +191,18 @@ export default function ProfilePage() {
           </Button>
         </Card>
       )}
+
+      <Card style={{ marginTop: "var(--space-5)" }}>
+        <h2 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-2)" }}>Account</h2>
+        <p style={{ color: "var(--ink-soft)", marginBottom: "var(--space-4)", fontSize: "var(--text-sm)" }}>
+          {isSignedIn
+            ? "You’re signed in with your Side Quest account."
+            : DEMO
+              ? "Browsing as a demo guest — log in to save your profile to the cloud."
+              : "Manage your sign-in session."}
+        </p>
+        <AuthActions placement="sidebar" />
+      </Card>
     </div>
   );
 }

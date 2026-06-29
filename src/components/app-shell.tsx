@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Avatar } from "@/components/ui";
+import { AuthActions } from "@/components/auth-actions";
 import { DisplayName } from "@/components/user-display";
 import { chatPath } from "@/lib/paths";
 
@@ -51,29 +52,32 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <Link href="/profile" className="app-user-chip">
-          <DisplayName>
-            {(name) => (
-              <>
-                <Avatar name={name} size={34} />
-                <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                  <span style={{ fontWeight: 700, fontSize: "var(--text-sm)", whiteSpace: "nowrap" }}>{name}</span>
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      color: "var(--ink-faint)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    Edit profile
+        <div style={{ marginTop: "auto", display: "flex", flexDirection: "column" }}>
+          <Link href="/profile" className="app-user-chip">
+            <DisplayName>
+              {(name) => (
+                <>
+                  <Avatar name={name} size={34} />
+                  <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                    <span style={{ fontWeight: 700, fontSize: "var(--text-sm)", whiteSpace: "nowrap" }}>{name}</span>
+                    <span
+                      style={{
+                        fontSize: "0.72rem",
+                        color: "var(--ink-faint)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Edit profile
+                    </span>
                   </span>
-                </span>
-              </>
-            )}
-          </DisplayName>
-        </Link>
+                </>
+              )}
+            </DisplayName>
+          </Link>
+          <AuthActions placement="sidebar" />
+        </div>
       </aside>
 
       <div className="app-main">
@@ -86,6 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span aria-hidden className="app-bell">
             <IconBell />
           </span>
+          <AuthActions placement="topbar" />
           <Link href="/profile" aria-label="Edit profile">
             <DisplayName>{(name) => <Avatar name={name} size={34} />}</DisplayName>
           </Link>
